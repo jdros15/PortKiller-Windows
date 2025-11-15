@@ -31,6 +31,18 @@ const MENU_ID_EMPTY: &str = "empty";
 #[derive(Serialize, Deserialize, Clone, Debug)]
 struct Config {
     port_ranges: Vec<(u16, u16)>,
+    #[serde(default = "default_inactive_color")]
+    inactive_color: (u8, u8, u8),
+    #[serde(default = "default_active_color")]
+    active_color: (u8, u8, u8),
+}
+
+fn default_inactive_color() -> (u8, u8, u8) {
+    (255, 255, 255) // White - matches other macOS menu bar icons
+}
+
+fn default_active_color() -> (u8, u8, u8) {
+    (255, 69, 58) // Red - SF Symbols system red color
 }
 
 impl Default for Config {
@@ -49,6 +61,8 @@ impl Default for Config {
                 (9000, 9010),   // Various dev tools
                 (27017, 27017), // MongoDB
             ],
+            inactive_color: default_inactive_color(),
+            active_color: default_active_color(),
         }
     }
 }
@@ -97,7 +111,7 @@ fn main() -> Result<()> {
     let _menu_thread = spawn_menu_listener(proxy.clone());
     let _kill_worker = spawn_kill_worker(kill_rx, proxy.clone());
 
-    let icon = create_icon(false).context("failed to create tray icon image")?;
+    let icon = create_icon(config.inactive_color).context("failed to create tray icon image")?;
     let initial_menu = build_menu(&[]).context("failed to build initial menu")?;
     let tray_icon = TrayIconBuilder::new()
         .with_icon(icon)
@@ -109,8 +123,12 @@ fn main() -> Result<()> {
         .set_visible(true)
         .context("failed to show tray icon")?;
 
-    let mut state = AppState::default();
-    update_tray_display(&tray_icon, &state.processes, state.last_feedback.as_ref());
+    let mut state = AppState {
+        processes: Vec::new(),
+        last_feedback: None,
+        config: config.clone(),
+    };
+    update_tray_display(&tray_icon, &state);
     let mut kill_sender: Option<Sender<KillCommand>> = Some(kill_tx);
 
     #[allow(deprecated)]
@@ -122,7 +140,7 @@ fn main() -> Result<()> {
             UserEvent::ProcessesUpdated(processes) => {
                 state.processes = processes;
                 sync_menu(&tray_icon, &state.processes);
-                update_tray_display(&tray_icon, &state.processes, state.last_feedback.as_ref());
+                update_tray_display(&tray_icon, &state);
             }
             UserEvent::MenuAction(action) => match action {
                 MenuAction::EditConfig => {
@@ -136,11 +154,7 @@ fn main() -> Result<()> {
                         "Opened config file: {}",
                         path_str
                     )));
-                    update_tray_display(
-                        &tray_icon,
-                        &state.processes,
-                        state.last_feedback.as_ref(),
-                    );
+                    update_tray_display(&tray_icon, &state);
                 }
                 MenuAction::KillPid { pid, .. } => {
                     if let Some(target) = describe_pid(pid, &state.processes) {
@@ -152,11 +166,7 @@ fn main() -> Result<()> {
                                 ));
                                 kill_sender = None;
                                 state.last_feedback = Some(feedback);
-                                update_tray_display(
-                                    &tray_icon,
-                                    &state.processes,
-                                    state.last_feedback.as_ref(),
-                                );
+                                update_tray_display(&tray_icon, &state);
                             }
                         } else {
                             let feedback = KillFeedback::error(format!(
@@ -164,22 +174,14 @@ fn main() -> Result<()> {
                                 pid
                             ));
                             state.last_feedback = Some(feedback);
-                            update_tray_display(
-                                &tray_icon,
-                                &state.processes,
-                                state.last_feedback.as_ref(),
-                            );
+                            update_tray_display(&tray_icon, &state);
                         }
                     } else {
                         state.last_feedback = Some(KillFeedback::info(format!(
                             "PID {} is no longer active.",
                             pid
                         )));
-                        update_tray_display(
-                            &tray_icon,
-                            &state.processes,
-                            state.last_feedback.as_ref(),
-                        );
+                        update_tray_display(&tray_icon, &state);
                     }
                 }
                 MenuAction::KillAll => {
@@ -188,11 +190,7 @@ fn main() -> Result<()> {
                         state.last_feedback = Some(KillFeedback::info(
                             "No dev port listeners to terminate.".to_string(),
                         ));
-                        update_tray_display(
-                            &tray_icon,
-                            &state.processes,
-                            state.last_feedback.as_ref(),
-                        );
+                        update_tray_display(&tray_icon, &state);
                     } else if let Some(sender) = kill_sender.as_ref() {
                         if let Err(err) = sender.send(KillCommand::KillAll(targets)) {
                             let feedback = KillFeedback::error(format!(
@@ -201,22 +199,14 @@ fn main() -> Result<()> {
                             ));
                             kill_sender = None;
                             state.last_feedback = Some(feedback);
-                            update_tray_display(
-                                &tray_icon,
-                                &state.processes,
-                                state.last_feedback.as_ref(),
-                            );
+                            update_tray_display(&tray_icon, &state);
                         }
                     } else {
                         let feedback = KillFeedback::error(
                             "Kill worker unavailable for batch request.".to_string(),
                         );
                         state.last_feedback = Some(feedback);
-                        update_tray_display(
-                            &tray_icon,
-                            &state.processes,
-                            state.last_feedback.as_ref(),
-                        );
+                        update_tray_display(&tray_icon, &state);
                     }
                 }
                 MenuAction::Quit => {
@@ -225,12 +215,12 @@ fn main() -> Result<()> {
             },
             UserEvent::KillFeedback(feedback) => {
                 state.last_feedback = Some(feedback);
-                update_tray_display(&tray_icon, &state.processes, state.last_feedback.as_ref());
+                update_tray_display(&tray_icon, &state);
             }
             UserEvent::MonitorError(message) => {
                 warn!("Monitor error: {}", message);
                 state.last_feedback = Some(KillFeedback::error(message));
-                update_tray_display(&tray_icon, &state.processes, state.last_feedback.as_ref());
+                update_tray_display(&tray_icon, &state);
             }
         },
         Event::LoopExiting => {
@@ -675,16 +665,20 @@ fn sync_menu(tray_icon: &TrayIcon, processes: &[ProcessInfo]) {
 
 fn update_tray_display(
     tray_icon: &TrayIcon,
-    processes: &[ProcessInfo],
-    feedback: Option<&KillFeedback>,
+    state: &AppState,
 ) {
     // Update icon color based on whether ports are active
-    let has_active = !processes.is_empty();
-    if let Ok(icon) = create_icon(has_active) {
+    let color = if state.processes.is_empty() {
+        state.config.inactive_color
+    } else {
+        state.config.active_color
+    };
+
+    if let Ok(icon) = create_icon(color) {
         let _ = tray_icon.set_icon(Some(icon));
     }
 
-    let tooltip = build_tooltip(processes, feedback);
+    let tooltip = build_tooltip(&state.processes, state.last_feedback.as_ref());
     if let Err(err) = tray_icon.set_tooltip(Some(tooltip.as_str())) {
         error!("Failed to update tooltip: {}", err);
     }
@@ -722,17 +716,12 @@ fn build_tooltip(processes: &[ProcessInfo], feedback: Option<&KillFeedback>) -> 
     lines.join("\n")
 }
 
-fn create_icon(active: bool) -> Result<Icon> {
+fn create_icon(color: (u8, u8, u8)) -> Result<Icon> {
     // Create a 22x22 icon (standard macOS menu bar size)
     let size = 22;
     let mut pixels = vec![0u8; (size * size * 4) as usize];
 
-    // Color: black for inactive (template mode), yellow/orange for active
-    let (r, g, b) = if active {
-        (255, 200, 0) // Bright yellow/orange color
-    } else {
-        (0, 0, 0) // Black (will be colorized by macOS in template mode)
-    };
+    let (r, g, b) = color;
 
     let draw_pixel = |pixels: &mut [u8], x: i32, y: i32, alpha: u8| {
         if x >= 0 && x < size && y >= 0 && y < size {
@@ -847,10 +836,21 @@ enum FeedbackSeverity {
     Error,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 struct AppState {
     processes: Vec<ProcessInfo>,
     last_feedback: Option<KillFeedback>,
+    config: Config,
+}
+
+impl Default for AppState {
+    fn default() -> Self {
+        Self {
+            processes: Vec::new(),
+            last_feedback: None,
+            config: Config::default(),
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
