@@ -8,10 +8,11 @@ A lightweight macOS menu bar application that monitors common development server
 ## Features
 
 - **Real-time Port Monitoring** - Automatically scans and displays processes listening on development ports
-- **Visual Indicators** - Icon turns yellow when active ports are detected
+- **Visual Indicators** - Icon changes color when active ports are detected (configurable colors)
 - **Quick Kill** - Terminate individual processes or all at once with a single click
 - **Graceful Shutdown** - Attempts SIGTERM first, falls back to SIGKILL if needed
-- **Configurable** - Easily customize which ports to monitor via JSON config file
+- **Customizable Colors** - Configure icon colors for active/inactive states
+- **Configurable Ports** - Easily customize which ports to monitor via JSON config file
 - **Native Performance** - Built with Rust for minimal resource usage
 
 ## Default Monitored Ports
@@ -30,12 +31,30 @@ A lightweight macOS menu bar application that monitors common development server
 
 ## Installation
 
-### From Release (Recommended)
+### Quick Install (Recommended)
 
-1. Download the latest `macport` binary from the [Releases](https://github.com/gupsammy/Macport/releases) page
-2. Move it to your preferred location (e.g., `/Applications/macport` or `/usr/local/bin/macport`)
-3. Make it executable: `chmod +x /Applications/macport`
-4. Run: `macport` or create an alias in your shell config
+```bash
+# Download and extract
+curl -L https://github.com/gupsammy/Macport/releases/latest/download/macport-v1.1.0-macos.tar.gz | tar xz
+
+# Navigate to extracted folder
+cd macport-v1.1.0-macos
+
+# Run the installer (will prompt for sudo password)
+./install.sh
+
+# Launch the app
+macport
+```
+
+The app will appear in your macOS menu bar.
+
+### macOS Security Note
+
+If macOS shows a security warning saying the app "cannot be verified", the installation script automatically handles this. For manual installations, run:
+```bash
+sudo xattr -dr com.apple.quarantine /usr/local/bin/macport
+```
 
 ### From Source
 
@@ -68,17 +87,44 @@ Example configuration:
     [3000, 3010],
     [5432, 5432],
     [8080, 8090]
-  ]
+  ],
+  "inactive_color": [255, 255, 255],
+  "active_color": [255, 69, 58]
 }
 ```
+
+### Color Customization
+
+The `inactive_color` and `active_color` fields accept RGB values (0-255 for each channel):
+- `inactive_color`: Icon color when no ports are active (default: white)
+- `active_color`: Icon color when ports are being monitored (default: red)
+
+Popular color options:
+- **Red**: `[255, 69, 58]` (default active)
+- **Orange**: `[255, 149, 0]`
+- **Yellow**: `[255, 204, 0]`
+- **Green**: `[52, 199, 89]`
+- **Blue**: `[0, 122, 255]`
+- **Purple**: `[191, 90, 242]`
+- **White**: `[255, 255, 255]` (default inactive)
 
 ## Usage
 
 1. Launch the application - it will appear in your macOS menu bar
-2. The icon shows as black/white (following system theme) when no ports are active
-3. The icon turns yellow when processes are detected on monitored ports
+2. The icon shows in your configured inactive color (default: white) when no ports are active
+3. The icon changes to your configured active color (default: red) when processes are detected on monitored ports
 4. Click the menu bar icon to see all active listeners
 5. Select a process to terminate it, or use "Kill all" to terminate all at once
+
+## Uninstall
+
+```bash
+# Remove the binary
+sudo rm /usr/local/bin/macport
+
+# Remove the config file (optional)
+rm ~/.macport.json
+```
 
 ## Platform Support
 
