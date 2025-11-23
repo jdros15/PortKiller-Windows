@@ -23,9 +23,11 @@ pub enum UserEvent {
 pub enum MenuAction {
     KillPid { pid: i32 },
     KillAll,
-    EditConfig,
     DockerStop { container: String },
+    DockerStopAll,
     BrewStop { service: String },
+    BrewStopAll,
+    EditConfig,
     Snooze30m,
     Quit,
 }

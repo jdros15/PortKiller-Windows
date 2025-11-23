@@ -129,7 +129,31 @@ pub fn run() -> Result<()> {
                     }
                 }
                 MenuAction::KillAll => {
-                    let targets = collect_targets_for_all(&state.processes);
+                    // Filter to only regular processes (exclude Docker and Brew)
+                    let regular_processes: Vec<ProcessInfo> = state
+                        .processes
+                        .iter()
+                        .filter(|p| {
+                            // Exclude Docker containers
+                            if state.docker_port_map.contains_key(&p.port) {
+                                return false;
+                            }
+                            // Exclude Brew services
+                            if crate::integrations::brew::get_brew_managed_service(
+                                &p.command,
+                                p.port,
+                                &state.brew_services_map,
+                            )
+                            .is_some()
+                            {
+                                return false;
+                            }
+                            true
+                        })
+                        .cloned()
+                        .collect();
+
+                    let targets = collect_targets_for_all(&regular_processes);
                     if targets.is_empty() {
                         state.last_feedback = Some(KillFeedback::info(
                             "No dev port listeners to terminate.".to_string(),
@@ -161,9 +185,51 @@ pub fn run() -> Result<()> {
                         let _ = sender.send(WorkerCommand::DockerStop { container });
                     }
                 }
+                MenuAction::DockerStopAll => {
+                    if let Some(sender) = worker_sender.as_ref() {
+                        // Collect all unique Docker containers from current processes
+                        let containers: Vec<String> = state
+                            .docker_port_map
+                            .values()
+                            .map(|dc| dc.name.clone())
+                            .collect::<HashSet<_>>()
+                            .into_iter()
+                            .collect();
+
+                        for container in containers {
+                            let _ = sender.send(WorkerCommand::DockerStop {
+                                container: container.clone(),
+                            });
+                        }
+                    }
+                }
                 MenuAction::BrewStop { service } => {
                     if let Some(sender) = worker_sender.as_ref() {
                         let _ = sender.send(WorkerCommand::BrewStop { service });
+                    }
+                }
+                MenuAction::BrewStopAll => {
+                    if let Some(sender) = worker_sender.as_ref() {
+                        // Collect all unique brew services from current processes
+                        let services: Vec<String> = state
+                            .processes
+                            .iter()
+                            .filter_map(|p| {
+                                crate::integrations::brew::get_brew_managed_service(
+                                    &p.command,
+                                    p.port,
+                                    &state.brew_services_map,
+                                )
+                            })
+                            .collect::<HashSet<_>>()
+                            .into_iter()
+                            .collect();
+
+                        for service in services {
+                            let _ = sender.send(WorkerCommand::BrewStop {
+                                service: service.clone(),
+                            });
+                        }
                     }
                 }
                 MenuAction::Snooze30m => {
