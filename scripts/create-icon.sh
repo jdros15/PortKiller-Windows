@@ -59,6 +59,7 @@ if [ -f "assets/icon-1024.png" ]; then
     BASE_ICON="assets/icon-1024.png"
 
     # Generate all sizes from the custom icon using sips and optimize
+    # Note: Skipping 512x512@2x (1024x1024) - not needed for menu bar apps
     sips -z 16 16 "${BASE_ICON}" --out "${ICON_DIR}/icon_16x16.png" > /dev/null 2>&1
     sips -z 32 32 "${BASE_ICON}" --out "${ICON_DIR}/icon_16x16@2x.png" > /dev/null 2>&1
     sips -z 32 32 "${BASE_ICON}" --out "${ICON_DIR}/icon_32x32.png" > /dev/null 2>&1
@@ -68,20 +69,32 @@ if [ -f "assets/icon-1024.png" ]; then
     sips -z 256 256 "${BASE_ICON}" --out "${ICON_DIR}/icon_256x256.png" > /dev/null 2>&1
     sips -z 512 512 "${BASE_ICON}" --out "${ICON_DIR}/icon_256x256@2x.png" > /dev/null 2>&1
     sips -z 512 512 "${BASE_ICON}" --out "${ICON_DIR}/icon_512x512.png" > /dev/null 2>&1
-    sips -z 1024 1024 "${BASE_ICON}" --out "${ICON_DIR}/icon_512x512@2x.png" > /dev/null 2>&1
-    echo "  ✓ Generated all icon sizes from custom PNG"
+    echo "  ✓ Generated optimized icon sizes (max 512x512 for menu bar app)"
 
-    # Optimize all generated PNGs
-    if command -v pngquant &> /dev/null && command -v optipng &> /dev/null; then
-        echo "  🔧 Optimizing icon files..."
+    # Optimize all generated PNGs with aggressive compression
+    if command -v pngquant &> /dev/null; then
+        echo "  🔧 Optimizing icon files with pngquant..."
         for png in "${ICON_DIR}"/*.png; do
-            pngquant --quality=85-95 --speed 1 --force "$png" --output "$png" 2>/dev/null
-            optipng -quiet -o7 "$png" 2>/dev/null
+            pngquant --quality=80-90 --speed 1 --force "$png" --output "$png" 2>/dev/null || true
         done
-        echo "  ✓ Optimized all icon sizes"
+        echo "  ✓ Compressed PNGs with pngquant"
+    fi
+
+    if command -v optipng &> /dev/null; then
+        echo "  🔧 Further optimizing with optipng..."
+        for png in "${ICON_DIR}"/*.png; do
+            optipng -quiet -o7 "$png" 2>/dev/null || true
+        done
+        echo "  ✓ Optimized all icon sizes with optipng"
+    fi
+
+    if ! command -v pngquant &> /dev/null && ! command -v optipng &> /dev/null; then
+        echo "  ⚠️  Install pngquant and optipng for better compression:"
+        echo "     brew install pngquant optipng"
     fi
 else
     echo "⚠ No custom icon found, generating default..."
+    # Note: Skipping 512x512@2x (1024x1024) - not needed for menu bar apps
     create_icon 16 "${ICON_DIR}/icon_16x16.png"
     create_icon 32 "${ICON_DIR}/icon_16x16@2x.png"
     create_icon 32 "${ICON_DIR}/icon_32x32.png"
@@ -91,7 +104,6 @@ else
     create_icon 256 "${ICON_DIR}/icon_256x256.png"
     create_icon 512 "${ICON_DIR}/icon_256x256@2x.png"
     create_icon 512 "${ICON_DIR}/icon_512x512.png"
-    create_icon 1024 "${ICON_DIR}/icon_512x512@2x.png"
 fi
 
 # Convert iconset to .icns
