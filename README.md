@@ -31,35 +31,16 @@ A lightweight macOS menu bar application that monitors common development server
 
 ## Installation
 
-### One-Line Install (Recommended)
+### Download DMG (Recommended)
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/gupsammy/PortKiller/master/install.sh | bash
-```
+1. Download the latest `PortKiller.dmg` from the [Releases](https://github.com/gupsammy/PortKiller/releases) page
+2. Open the DMG file
+3. Drag PortKiller to your Applications folder
+4. Launch PortKiller from Applications or Spotlight
 
-The installer will:
-- Download the latest release from GitHub
-- Install to `/usr/local/bin/portkiller`
-- Set up permissions and handle macOS security
-- Verify the installation
+The app will appear in your macOS menu bar and is ready to use!
 
-After installation, simply run `portkiller` to launch the app in your menu bar.
-
-### Alternative: Install Specific Version
-
-To install and inspect the script first:
-```bash
-# Download the installer
-curl -fsSL https://raw.githubusercontent.com/gupsammy/PortKiller/master/install.sh > install.sh
-
-# Review it
-less install.sh
-
-# Run it
-bash install.sh
-```
-
-### From Source
+### Build from Source
 
 ```bash
 # Clone the repository
@@ -137,13 +118,9 @@ Popular color options:
 
 ## Uninstall
 
-```bash
-# Remove the binary
-sudo rm /usr/local/bin/portkiller
-
-# Remove the config file (optional)
-rm ~/.portkiller.json
-```
+1. Quit PortKiller from the menu bar (click icon → Quit)
+2. Move PortKiller from Applications to Trash
+3. Optionally remove the config file: `rm ~/.portkiller.json`
 
 ## Platform Support
 
