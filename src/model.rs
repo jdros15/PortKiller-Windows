@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::time::Instant;
 
 use nix::errno::Errno;
 
@@ -28,7 +27,6 @@ pub enum MenuAction {
     BrewStop { service: String },
     BrewStopAll,
     EditConfig,
-    Snooze30m,
     Quit,
 }
 
@@ -85,7 +83,6 @@ pub struct AppState {
     pub project_cache: HashMap<i32, ProjectInfo>,
     pub docker_port_map: HashMap<u16, DockerContainerInfo>,
     pub brew_services_map: HashMap<String, String>, // service_name -> status
-    pub snooze_until: Option<Instant>,
 }
 
 #[derive(Clone, Copy, Debug)]

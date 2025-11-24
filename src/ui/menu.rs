@@ -15,7 +15,6 @@ const MENU_ID_PROCESS_PREFIX: &str = "process_";
 const MENU_ID_DOCKER_STOP_PREFIX: &str = "docker_stop_";
 const MENU_ID_BREW_STOP_PREFIX: &str = "brew_stop_";
 const MENU_ID_EMPTY: &str = "empty";
-const MENU_ID_SNOOZE_30M: &str = "snooze_30m";
 
 /// Maps common container names to friendly display names
 fn friendly_container_name(raw_name: &str) -> String {
@@ -258,8 +257,6 @@ pub fn build_menu_with_context(state: &AppState) -> Result<Menu> {
     }
 
     menu.append(&PredefinedMenuItem::separator())?;
-    let snooze_item = MenuItem::with_id(MENU_ID_SNOOZE_30M, "Snooze notifications 30m", true, None);
-    menu.append(&snooze_item)?;
     let edit_config_item =
         MenuItem::with_id(MENU_ID_EDIT_CONFIG, "Edit Configuration...", true, None);
     menu.append(&edit_config_item)?;
@@ -284,8 +281,6 @@ pub fn parse_menu_action(id: &MenuId) -> Option<crate::model::MenuAction> {
         Some(crate::model::MenuAction::Quit)
     } else if raw == MENU_ID_EDIT_CONFIG {
         Some(crate::model::MenuAction::EditConfig)
-    } else if raw == MENU_ID_SNOOZE_30M {
-        Some(crate::model::MenuAction::Snooze30m)
     } else if let Some(rest) = raw.strip_prefix(MENU_ID_DOCKER_STOP_PREFIX) {
         Some(crate::model::MenuAction::DockerStop {
             container: sanitize_identifier(rest),
@@ -410,10 +405,6 @@ mod tests {
         assert!(matches!(
             parse_menu_action(&MenuId::new("edit_config")),
             Some(MenuAction::EditConfig)
-        ));
-        assert!(matches!(
-            parse_menu_action(&MenuId::new("snooze_30m")),
-            Some(MenuAction::Snooze30m)
         ));
     }
 

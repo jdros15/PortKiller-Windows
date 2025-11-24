@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::process::Command;
 use std::thread;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use anyhow::{Context, Result};
 use crossbeam_channel::{Receiver, Sender};
@@ -38,7 +38,6 @@ pub fn run() -> Result<()> {
         project_cache: HashMap::new(),
         docker_port_map: HashMap::new(),
         brew_services_map: HashMap::new(),
-        snooze_until: None,
     };
 
     let event_loop = EventLoop::<UserEvent>::with_user_event()
@@ -231,13 +230,6 @@ pub fn run() -> Result<()> {
                             });
                         }
                     }
-                }
-                MenuAction::Snooze30m => {
-                    state.snooze_until = Some(Instant::now() + Duration::from_secs(30 * 60));
-                    state.last_feedback = Some(KillFeedback::info(
-                        "Notifications snoozed for 30 minutes.".into(),
-                    ));
-                    update_tray_display(&tray_icon, &state);
                 }
             },
             UserEvent::KillFeedback(feedback) => {

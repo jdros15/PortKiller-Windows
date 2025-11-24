@@ -85,7 +85,7 @@ Four concurrent threads communicate via channels and event loop proxy:
 
 **app.rs**: Event loop orchestration, thread management, state coordination
 **config.rs**: Load/save user preferences, default port ranges
-**model.rs**: `AppState` (processes, Docker/Brew mappings, project cache, snooze state)
+**model.rs**: `AppState` (processes, Docker/Brew mappings, project cache)
 **process/ports.rs**: Parse `lsof` output, map ports to PIDs
 **process/kill.rs**: Graceful shutdown (SIGTERM → 2s → SIGKILL → 1s)
 **ui/menu.rs**: Dynamic menu with process/Docker/Brew items
@@ -98,7 +98,6 @@ Four concurrent threads communicate via channels and event loop proxy:
 - **Kill all**: Terminate all monitored processes
 - **Stop [docker container]**: `docker stop <container>`
 - **Stop [brew service]**: `brew services stop <service>`
-- **Snooze 30m**: Pause monitoring temporarily
 - **Edit Configuration**: Open `~/.macport.json`
 - **Quit**: Exit app
 
