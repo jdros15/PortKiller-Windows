@@ -97,7 +97,6 @@ pub fn build_menu_with_context(state: &AppState) -> Result<Menu> {
                 None,
             );
             menu.append(&header)?;
-            menu.append(&PredefinedMenuItem::separator())?;
 
             // Create clickable menu item for each process (grouped by PID)
             for (pid, (command, ports)) in &mut by_pid {
@@ -131,7 +130,6 @@ pub fn build_menu_with_context(state: &AppState) -> Result<Menu> {
 
             // Kill All only if multiple processes
             if by_pid.len() > 1 {
-                menu.append(&PredefinedMenuItem::separator())?;
                 let kill_all =
                     MenuItem::with_id(MENU_ID_KILL_ALL, "Kill All Processes", true, None);
                 menu.append(&kill_all)?;
@@ -161,7 +159,6 @@ pub fn build_menu_with_context(state: &AppState) -> Result<Menu> {
                 None,
             );
             menu.append(&header)?;
-            menu.append(&PredefinedMenuItem::separator())?;
 
             // Check if we need Stop All before consuming the map
             let needs_stop_all = by_container.len() > 1;
@@ -191,7 +188,6 @@ pub fn build_menu_with_context(state: &AppState) -> Result<Menu> {
 
             // Stop All only if multiple containers
             if needs_stop_all {
-                menu.append(&PredefinedMenuItem::separator())?;
                 let stop_all =
                     MenuItem::with_id(MENU_ID_DOCKER_STOP_ALL, "Stop All Containers", true, None);
                 menu.append(&stop_all)?;
@@ -220,7 +216,6 @@ pub fn build_menu_with_context(state: &AppState) -> Result<Menu> {
                 None,
             );
             menu.append(&header)?;
-            menu.append(&PredefinedMenuItem::separator())?;
 
             // Check if we need Stop All before consuming the map
             let needs_stop_all = by_service.len() > 1;
@@ -249,7 +244,6 @@ pub fn build_menu_with_context(state: &AppState) -> Result<Menu> {
 
             // Stop All only if multiple services
             if needs_stop_all {
-                menu.append(&PredefinedMenuItem::separator())?;
                 let stop_all =
                     MenuItem::with_id(MENU_ID_BREW_STOP_ALL, "Stop All Services", true, None);
                 menu.append(&stop_all)?;
