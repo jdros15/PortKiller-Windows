@@ -27,6 +27,12 @@ mkdir -p "${APP_DIR}/Contents/Resources"
 echo "📋 Copying binary..."
 cp "${BUILD_DIR}/${APP_NAME}" "${APP_DIR}/Contents/MacOS/"
 
+# Step 3.5: Copy icon if available
+if [ -f "assets/AppIcon.icns" ]; then
+    echo "🎨 Copying app icon..."
+    cp "assets/AppIcon.icns" "${APP_DIR}/Contents/Resources/"
+fi
+
 # Step 4: Create Info.plist
 echo "📝 Creating Info.plist..."
 cat > "${APP_DIR}/Contents/Info.plist" << EOF
@@ -50,6 +56,8 @@ cat > "${APP_DIR}/Contents/Info.plist" << EOF
     <string>${VERSION}</string>
     <key>CFBundleVersion</key>
     <string>1</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
     <key>LSMinimumSystemVersion</key>
     <string>10.15</string>
     <key>LSUIElement</key>
