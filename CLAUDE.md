@@ -64,10 +64,6 @@ User config stored at `~/.portkiller.json` (auto-created on first run):
     "brew_enabled": true,
     "docker_enabled": true
   },
-  "ui": {
-    "inactive_color": [255, 255, 255],
-    "active_color": [255, 69, 58]
-  },
   "notifications": {
     "enabled": true
   },
@@ -119,7 +115,7 @@ Four concurrent threads communicate via channels and event loop proxy:
 **process/ports.rs**: Parse `lsof` output, map ports to PIDs
 **process/kill.rs**: Graceful shutdown (SIGTERM → 2s → SIGKILL → 1s)
 **ui/menu.rs**: Dynamic menu with process/Docker/Brew items
-**ui/icon.rs**: Template-based icon with configurable colors
+**ui/icon.rs**: Template icon that adapts to menu bar appearance
 **integrations/docker.rs**: Map container names to exposed ports
 **integrations/brew.rs**: Detect and verify Homebrew services on ports
 

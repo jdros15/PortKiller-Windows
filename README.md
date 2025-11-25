@@ -8,10 +8,9 @@ A lightweight macOS menu bar application that monitors common development server
 ## Features
 
 - **Real-time Port Monitoring** - Automatically scans and displays processes listening on development ports
-- **Visual Indicators** - Icon changes color when active ports are detected (configurable colors)
+- **Native Menu Bar Icon** - Adapts to light/dark mode automatically
 - **Quick Kill** - Terminate individual processes or all at once with a single click
 - **Graceful Shutdown** - Attempts SIGTERM first, falls back to SIGKILL if needed
-- **Customizable Colors** - Configure icon colors for active/inactive states
 - **Configurable Ports** - Easily customize which ports to monitor via JSON config file
 - **Native Performance** - Built with Rust for minimal resource usage
 
@@ -80,10 +79,6 @@ Example configuration:
     "brew_enabled": true,
     "docker_enabled": true
   },
-  "ui": {
-    "inactive_color": [255, 255, 255],
-    "active_color": [255, 69, 58]
-  },
   "notifications": {
     "enabled": true
   },
@@ -93,28 +88,12 @@ Example configuration:
 }
 ```
 
-### Color Customization
-
-The `ui.inactive_color` and `ui.active_color` fields accept RGB values (0-255 for each channel):
-- `ui.inactive_color`: Icon color when no ports are active (default: white)
-- `ui.active_color`: Icon color when ports are being monitored (default: red)
-
-Popular color options:
-- **Red**: `[255, 69, 58]` (default active)
-- **Orange**: `[255, 149, 0]`
-- **Yellow**: `[255, 204, 0]`
-- **Green**: `[52, 199, 89]`
-- **Blue**: `[0, 122, 255]`
-- **Purple**: `[191, 90, 242]`
-- **White**: `[255, 255, 255]` (default inactive)
-
 ## Usage
 
 1. Launch the application - it will appear in your macOS menu bar
-2. The icon shows in your configured inactive color (default: white) when no ports are active
-3. The icon changes to your configured active color (default: red) when processes are detected on monitored ports
-4. Click the menu bar icon to see all active listeners
-5. Select a process to terminate it, or use "Kill all" to terminate all at once
+2. The icon automatically adapts to your menu bar appearance (light/dark mode)
+3. Click the menu bar icon to see all active port listeners
+4. Select a process to terminate it, or use "Kill all" to terminate all at once
 
 ## Uninstall
 

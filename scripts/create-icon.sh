@@ -53,11 +53,18 @@ create_icon() {
 # Generate all required icon sizes for macOS
 echo "📐 Generating icon sizes..."
 
-# Check if custom icon exists
-if [ -f "assets/icon-1024.png" ]; then
+# Check if custom icon exists (try app-logo-color.png first, then icon-1024.png)
+if [ -f "assets/app-logo-color.png" ]; then
+    echo "✓ Using custom icon: assets/app-logo-color.png"
+    BASE_ICON="assets/app-logo-color.png"
+elif [ -f "assets/icon-1024.png" ]; then
     echo "✓ Using custom icon: assets/icon-1024.png"
     BASE_ICON="assets/icon-1024.png"
+else
+    BASE_ICON=""
+fi
 
+if [ -n "$BASE_ICON" ]; then
     # Generate all sizes from the custom icon using sips and optimize
     # Note: Skipping 512x512@2x (1024x1024) - not needed for menu bar apps
     sips -z 16 16 "${BASE_ICON}" --out "${ICON_DIR}/icon_16x16.png" > /dev/null 2>&1
