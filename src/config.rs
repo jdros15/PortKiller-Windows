@@ -1,4 +1,5 @@
-use std::fs;
+use std::fs::{self, Permissions};
+use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
 
 use anyhow::{Context, Result};
@@ -97,8 +98,13 @@ pub fn load_or_create_config() -> Result<Config> {
     let path = get_config_path();
 
     if path.exists() {
+        // Validate file permissions (should be 0600 for security)
+        ensure_secure_permissions(&path)?;
         let content = fs::read_to_string(&path).context("failed to read config file")?;
-        serde_json::from_str::<Config>(&content).context("failed to parse config file")
+        let config: Config =
+            serde_json::from_str(&content).context("failed to parse config file")?;
+        validate_config(&config)?;
+        Ok(config)
     } else {
         let config = Config::default();
         save_config(&config)?;
@@ -109,6 +115,41 @@ pub fn load_or_create_config() -> Result<Config> {
 pub fn save_config(config: &Config) -> Result<()> {
     let path = get_config_path();
     let content = serde_json::to_string_pretty(config).context("failed to serialize config")?;
-    fs::write(&path, content).context("failed to write config file")?;
+    fs::write(&path, &content).context("failed to write config file")?;
+    // Set secure permissions (owner read/write only)
+    fs::set_permissions(&path, Permissions::from_mode(0o600))
+        .context("failed to set config file permissions")?;
+    Ok(())
+}
+
+fn ensure_secure_permissions(path: &PathBuf) -> Result<()> {
+    let metadata = fs::metadata(path).context("failed to read config file metadata")?;
+    let mode = metadata.permissions().mode();
+    // Check if group or others have any permissions (should be 0600)
+    if mode & 0o077 != 0 {
+        log::warn!(
+            "Config file has insecure permissions ({:o}), fixing to 0600",
+            mode & 0o777
+        );
+        fs::set_permissions(path, Permissions::from_mode(0o600))
+            .context("failed to fix config file permissions")?;
+    }
+    Ok(())
+}
+
+fn validate_config(config: &Config) -> Result<()> {
+    // Validate poll interval (1-300 seconds)
+    if config.monitoring.poll_interval_secs == 0 || config.monitoring.poll_interval_secs > 300 {
+        anyhow::bail!(
+            "poll_interval_secs must be between 1 and 300, got {}",
+            config.monitoring.poll_interval_secs
+        );
+    }
+    // Validate port ranges (u16 already enforces 0-65535)
+    for (start, end) in &config.monitoring.port_ranges {
+        if start > end {
+            anyhow::bail!("invalid port range: start ({}) > end ({})", start, end);
+        }
+    }
     Ok(())
 }
