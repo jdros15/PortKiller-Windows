@@ -17,85 +17,50 @@ pub struct Config {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(default)]
 pub struct MonitoringConfig {
-    #[serde(default = "default_poll_interval_secs")]
     pub poll_interval_secs: u64,
-    #[serde(default = "default_port_ranges")]
     pub port_ranges: Vec<(u16, u16)>,
-    #[serde(default = "default_show_project_names")]
     pub show_project_names: bool,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(default)]
 pub struct IntegrationsConfig {
-    #[serde(default = "default_brew_enabled")]
     pub brew_enabled: bool,
-    #[serde(default = "default_docker_enabled")]
     pub docker_enabled: bool,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(default)]
 pub struct NotificationsConfig {
-    #[serde(default = "default_notifications_enabled")]
     pub enabled: bool,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(default)]
 pub struct SystemConfig {
-    #[serde(default = "default_launch_at_login")]
     pub launch_at_login: bool,
-}
-
-// Defaults for MonitoringConfig
-fn default_poll_interval_secs() -> u64 {
-    2
-}
-
-fn default_port_ranges() -> Vec<(u16, u16)> {
-    vec![
-        (3000, 3010),   // Node.js, React, Next.js, Vite
-        (3306, 3306),   // MySQL
-        (4000, 4010),   // Alternative Node servers
-        (5001, 5010),   // Flask, general dev servers (excluding 5000)
-        (5173, 5173),   // Vite default
-        (5432, 5432),   // PostgreSQL
-        (6379, 6380),   // Redis (6379 default, 6380 for testing)
-        (8000, 8100),   // Django, Python HTTP servers
-        (8080, 8090),   // Tomcat, alternative HTTP
-        (9000, 9010),   // Various dev tools
-        (27017, 27017), // MongoDB
-    ]
-}
-
-fn default_show_project_names() -> bool {
-    true
-}
-
-// Defaults for IntegrationsConfig
-fn default_brew_enabled() -> bool {
-    true
-}
-
-fn default_docker_enabled() -> bool {
-    true
-}
-
-// Defaults for NotificationsConfig
-fn default_notifications_enabled() -> bool {
-    true
-}
-
-// Defaults for SystemConfig
-fn default_launch_at_login() -> bool {
-    false
 }
 
 impl Default for MonitoringConfig {
     fn default() -> Self {
         Self {
-            poll_interval_secs: default_poll_interval_secs(),
-            port_ranges: default_port_ranges(),
-            show_project_names: default_show_project_names(),
+            poll_interval_secs: 2,
+            port_ranges: vec![
+                (3000, 3010),   // Node.js, React, Next.js, Vite
+                (3306, 3306),   // MySQL
+                (4000, 4010),   // Alternative Node servers
+                (5001, 5010),   // Flask, general dev servers (excluding 5000)
+                (5173, 5173),   // Vite default
+                (5432, 5432),   // PostgreSQL
+                (6379, 6380),   // Redis (6379 default, 6380 for testing)
+                (8000, 8100),   // Django, Python HTTP servers
+                (8080, 8090),   // Tomcat, alternative HTTP
+                (9000, 9010),   // Various dev tools
+                (27017, 27017), // MongoDB
+            ],
+            show_project_names: true,
         }
     }
 }
@@ -103,24 +68,22 @@ impl Default for MonitoringConfig {
 impl Default for IntegrationsConfig {
     fn default() -> Self {
         Self {
-            brew_enabled: default_brew_enabled(),
-            docker_enabled: default_docker_enabled(),
+            brew_enabled: true,
+            docker_enabled: true,
         }
     }
 }
 
 impl Default for NotificationsConfig {
     fn default() -> Self {
-        Self {
-            enabled: default_notifications_enabled(),
-        }
+        Self { enabled: true }
     }
 }
 
 impl Default for SystemConfig {
     fn default() -> Self {
         Self {
-            launch_at_login: default_launch_at_login(),
+            launch_at_login: false,
         }
     }
 }
