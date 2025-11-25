@@ -69,7 +69,7 @@ pub fn run() -> Result<()> {
 
     update_tray_display(&tray_icon, &state);
     let mut worker_sender: Option<Sender<WorkerCommand>> = Some(worker_tx);
-    let mut last_integration_refresh = Instant::now();
+    let mut last_integration_refresh = Instant::now() - INTEGRATION_REFRESH_INTERVAL;
 
     #[allow(deprecated)]
     let run_result = event_loop.run(move |event, event_loop| match event {
