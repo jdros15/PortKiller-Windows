@@ -1,30 +1,20 @@
 <p align="center">
-  <img src="assets/app-logo-color.png" alt="PortKiller" width="128" height="128">
-</p>
-
-<h1 align="center">PortKiller</h1>
-
-<p align="center">
-  <strong>Stop hunting. Start killing.</strong><br>
-  <em>That rogue process hogging port 3000? Gone in one click.</em>
-</p>
-
-<p align="center">
-  <a href="https://github.com/gupsammy/PortKiller/releases/tag/v0.1.0">
-    <img src="https://img.shields.io/badge/Download-v0.1.0-blue?style=for-the-badge" alt="Download v0.1.0">
+  <img src="assets/app-logo-color.png" alt="PortKiller" width="100" height="100">
+  <br><br>
+  <strong style="font-size: 2em;">PortKiller</strong>
+  <br>
+  <em>Stop hunting. Start killing.</em>
+  <br><br>
+  <a href="https://github.com/gupsammy/PortKiller/releases/download/v0.1.5/PortKiller.dmg">
+    <img src="https://img.shields.io/badge/Download-v0.1.5-blue?style=for-the-badge" alt="Download v0.1.5">
   </a>
-</p>
-
-<p align="center">
-  <img src="https://img.shields.io/badge/platform-macOS%2010.15+-lightgrey" alt="Platform">
+  &nbsp;&nbsp;
+  <img src="https://img.shields.io/badge/macOS%2010.15+-lightgrey" alt="Platform">
+  &nbsp;
   <img src="https://img.shields.io/badge/license-MIT-blue" alt="License">
 </p>
 
----
-
 Every developer knows the drill: `lsof -i :3000`, squint at the output, find the PID, `kill -9 1234`, repeat. PortKiller lives in your menu bar and does all that for you. One click. Done.
-
-**[Download PortKiller.dmg](https://github.com/gupsammy/PortKiller/releases/download/v0.1.0/PortKiller.dmg)** — Open it, drag to Applications, done.
 
 ---
 
@@ -44,7 +34,7 @@ Every developer knows the drill: `lsof -i :3000`, squint at the output, find the
 
 ### Download (Recommended)
 
-1. Download **[PortKiller.dmg](https://github.com/gupsammy/PortKiller/releases/download/v0.1.0/PortKiller.dmg)**
+1. Download **[PortKiller.dmg](https://github.com/gupsammy/PortKiller/releases/download/v0.1.5/PortKiller.dmg)**
 2. Open the DMG and drag PortKiller to Applications
 3. Launch from Applications or Spotlight
 
