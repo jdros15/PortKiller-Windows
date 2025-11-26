@@ -50,6 +50,17 @@ pub fn build_menu_with_context(state: &AppState) -> Result<Menu> {
     let menu = Menu::new();
     let processes = &state.processes;
 
+    // App header with name and version
+    let version = env!("CARGO_PKG_VERSION");
+    let header = MenuItem::with_id(
+        "app_header",
+        format!("PortKiller  v{}", version),
+        false,
+        None,
+    );
+    menu.append(&header)?;
+    menu.append(&PredefinedMenuItem::separator())?;
+
     if processes.is_empty() {
         let item = MenuItem::with_id(MENU_ID_EMPTY, "No dev ports listening", false, None);
         menu.append(&item)?;
