@@ -45,7 +45,14 @@ Every developer knows the drill: `lsof -i :3000`, squint at the output, find the
 
 ## Installation
 
-### Download (Recommended)
+### Homebrew (Recommended)
+
+```bash
+brew tap gupsammy/portkiller
+brew install --cask portkiller
+```
+
+### Download
 
 1. Download **[PortKiller.dmg](https://github.com/gupsammy/PortKiller/releases/download/v0.1.5/PortKiller.dmg)**
 2. Open the DMG and drag PortKiller to Applications
@@ -92,9 +99,12 @@ Changes require an app restart.
 
 ## Uninstall
 
-1. Quit PortKiller from the menu bar
-2. Move PortKiller.app from Applications to Trash
-3. Optionally: `rm ~/.portkiller.json`
+**Homebrew:**
+```bash
+brew uninstall --cask portkiller
+```
+
+**Manual:** Quit PortKiller, move PortKiller.app from Applications to Trash, optionally `rm ~/.portkiller.json`
 
 ## Platform Support
 
