@@ -36,6 +36,7 @@ Every developer knows the drill: `netstat -ano | findstr 3000`, squint at the ou
 ## Screenshots
 
 <img src="screenshots/ui.png" alt="PortKiller Menu UI" width="400">
+<img src="screenshots/notifications.png" alt="PortKiller Menu UI" width="400">
 
 ## Installation
 
