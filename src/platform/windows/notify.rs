@@ -1,7 +1,8 @@
 //! Windows toast notifications using PowerShell
 
 use std::collections::HashSet;
-use std::process::Command;
+
+use crate::utils::hidden_command;
 
 use crate::model::{AppState, ProcessInfo};
 
@@ -99,8 +100,8 @@ if (Get-Module -ListAvailable -Name BurntToast) {{
         body = body
     );
     
-    // Run PowerShell in background without waiting
-    let _ = Command::new("powershell")
+    // Run PowerShell in background without waiting (hidden to prevent console flicker)
+    let _ = hidden_command("powershell")
         .args([
             "-NoProfile",
             "-NonInteractive", 

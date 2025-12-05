@@ -4,32 +4,32 @@
 <img src="assets/app-logo-color.png" alt="PortKiller" width="120">
 </td>
 <td valign="middle">
-<h1>PortKiller</h1>
+<h1>PortKiller for Windows</h1>
 <p><em>Stop hunting. Start killing.</em><br>
 That rogue process hogging port 3000? Gone in one click.</p>
-<a href="https://github.com/gupsammy/PortKiller/releases/download/v0.1.5/PortKiller.dmg">
-<img src="https://img.shields.io/badge/⬇_Download_v0.1.5-22c55e?style=for-the-badge&logoColor=white" alt="Download v0.1.5">
+<a href="https://github.com/jdros15/PortKiller-Windows/releases">
+<img src="https://img.shields.io/badge/⬇_Download_Latest-0078D4?style=for-the-badge&logoColor=white&logo=windows" alt="Download">
 </a>
 &nbsp;
-<img src="https://img.shields.io/badge/macOS_10.15+-555?style=flat-square" alt="Platform">
+<img src="https://img.shields.io/badge/Windows_10%2F11-0078D4?style=flat-square&logo=windows&logoColor=white" alt="Platform">
 <img src="https://img.shields.io/badge/MIT-555?style=flat-square" alt="License">
 </td>
 </tr>
 </table>
 
-Every developer knows the drill: `lsof -i :3000`, squint at the output, find the PID, `kill -9 1234`, repeat. PortKiller lives in your menu bar and does all that for you. One click. Done.
+Every developer knows the drill: `netstat -ano | findstr 3000`, squint at the output, find the PID, `taskkill /F /PID 1234`, repeat. PortKiller lives in your system tray and does all that for you. One click. Done.
 
 ---
 
 ## Features
 
-- **One-Click Process Termination** — Kill any process hogging your dev ports instantly from the menu bar
+- **One-Click Process Termination** — Kill any process hogging your dev ports instantly from the system tray
 - **Docker Integration** — See which containers are using ports and stop them directly
-- **Homebrew Services** — Detect and stop brew services (PostgreSQL, Redis, MySQL) without touching the terminal
+- **Windows Services** — Detect and stop services (PostgreSQL, MySQL, IIS, etc.) without touching the command line
 - **Desktop Notifications** — Get notified when new processes start listening on your ports
 - **Project Detection** — Shows which git project each process belongs to
-- **Smart Graceful Shutdown** — SIGTERM first, SIGKILL only if needed
-- **Native Menu Bar App** — Lightweight, adapts to light/dark mode, zero resource usage when idle
+- **Smart Graceful Shutdown** — Attempts graceful unique before forcing termination
+- **Native System Tray App** — Lightweight, adapts to light/dark mode, zero resource usage when idle
 - **Pre-configured for Dev Ports** — Monitors Node.js, React, Vite, Django, Flask, PostgreSQL, Redis, MongoDB, and more out of the box
 - **Fully Configurable** — Add or remove port ranges via simple JSON config
 
@@ -37,43 +37,40 @@ Every developer knows the drill: `lsof -i :3000`, squint at the output, find the
 
 <img src="screenshots/ui.png" alt="PortKiller Menu UI" width="400">
 <br>
-<em>Menu bar interface showing active processes, Docker containers, and Homebrew services</em>
-
-<img src="screenshots/notifications.png" alt="Desktop Notifications" width="400">
-<br>
-<em>Desktop notifications when new processes start listening on your ports</em>
+<em>System tray interface showing active processes, Docker containers, and Services</em>
+*(Note: Screenshot from macOS version, Windows UI is similar)*
 
 ## Installation
 
-### Homebrew (Recommended)
+### Installer (Recommended)
 
-```bash
-brew tap gupsammy/portkiller
-brew install --cask portkiller
-```
+1. Download the latest **[Installer](https://github.com/jdros15/PortKiller-Windows/releases)**
+2. Run the installer
+3. Launch PortKiller from the Start Menu
 
-### Download
+### Portable
 
-1. Download **[PortKiller.dmg](https://github.com/gupsammy/PortKiller/releases/download/v0.1.5/PortKiller.dmg)**
-2. Open the DMG and drag PortKiller to Applications
-3. Launch from Applications or Spotlight
-
-The app appears in your menu bar — click to see active port listeners.
+1. Download the latest **[Portable Executable](https://github.com/jdros15/PortKiller-Windows/releases)**
+2. Run `portkiller.exe`
+3. The app appears in your system tray — click to see active port listeners.
 
 ### Build from Source
 
-```bash
-git clone https://github.com/gupsammy/PortKiller.git
-cd PortKiller
+```powershell
+git clone https://github.com/jdros15/PortKiller-Windows.git
+cd PortKiller-Windows
 cargo build --release
-./target/release/portkiller
+.\target\release\portkiller.exe
 ```
 
 Requires Rust 1.85+ (2024 edition).
 
 ## Configuration
 
-PortKiller creates `~/.portkiller.json` on first run. Edit via the menu bar (Edit Configuration) or directly:
+PortKiller creates a configuration file at first run.
+Location: `%APPDATA%\PortKiller\portkiller.json`
+
+Edit via the system tray (Edit Configuration) or directly:
 
 ```json
 {
@@ -83,7 +80,7 @@ PortKiller creates `~/.portkiller.json` on first run. Edit via the menu bar (Edi
     "show_project_names": true
   },
   "integrations": {
-    "brew_enabled": true,
+    "windows_services_enabled": true,
     "docker_enabled": true
   },
   "notifications": {
@@ -99,33 +96,25 @@ Changes require an app restart.
 
 ## Uninstall
 
-**Homebrew:**
-```bash
-brew uninstall --cask portkiller
-```
-
-**Manual:** Quit PortKiller, move PortKiller.app from Applications to Trash, optionally `rm ~/.portkiller.json`
+Use the Windows "Add or remove programs" settings specific, or run the uninstaller in the installation directory.
 
 ## Platform Support
 
-**macOS 10.15 (Catalina) and later** — Intel and Apple Silicon
+**Windows 10 and Windows 11** — x64 (ARM64 support pending)
 
 ## Development
 
-```bash
+```powershell
 # Debug build with logging
-RUST_LOG=debug cargo run
+$env:RUST_LOG="debug"; cargo run
 
 # Code quality
-cargo fmt && cargo clippy
-
-# Install pre-commit hook (auto-formats on commit)
-./scripts/install-hooks.sh
+cargo fmt; cargo clippy
 ```
 
 ## Feature Requests & Bug Reports
 
-Have an idea or found a bug? [Open an issue](https://github.com/gupsammy/PortKiller/issues) — contributions welcome!
+Have an idea or found a bug? [Open an issue](https://github.com/jdros15/PortKiller-Windows/issues) — contributions welcome!
 
 ## License
 

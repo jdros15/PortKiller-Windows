@@ -4,7 +4,8 @@
 //! Windows services like PostgreSQL, MySQL, SQL Server, Redis, etc.
 
 use std::collections::HashMap;
-use std::process::Command;
+
+use crate::utils::hidden_command;
 
 use crate::model::KillFeedback;
 
@@ -44,7 +45,7 @@ pub fn query_windows_services_map() -> anyhow::Result<HashMap<String, String>> {
 }
 
 fn get_service_status(service: &str) -> Option<String> {
-    let output = Command::new("sc")
+    let output = hidden_command("sc")
         .args(["query", service])
         .output()
         .ok()?;
@@ -127,7 +128,7 @@ fn get_default_port_for_service(service: &str) -> Option<u16> {
 
 /// Stop a Windows service
 pub fn run_service_stop(service: &str) -> KillFeedback {
-    let result = Command::new("sc")
+    let result = hidden_command("sc")
         .args(["stop", service])
         .output();
     

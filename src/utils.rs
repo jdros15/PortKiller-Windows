@@ -55,6 +55,24 @@ pub fn find_command(name: &str) -> &'static str {
     }
 }
 
+/// Create a Command that runs hidden on Windows (no console window).
+/// This prevents the brief console window flicker when spawning processes.
+#[cfg(target_os = "windows")]
+pub fn hidden_command(program: &str) -> std::process::Command {
+    use std::os::windows::process::CommandExt;
+    const CREATE_NO_WINDOW: u32 = 0x08000000;
+    
+    let mut cmd = std::process::Command::new(program);
+    cmd.creation_flags(CREATE_NO_WINDOW);
+    cmd
+}
+
+/// On non-Windows, just return a normal Command
+#[cfg(not(target_os = "windows"))]
+pub fn hidden_command(program: &str) -> std::process::Command {
+    std::process::Command::new(program)
+}
+
 /// Check if Windows is using dark mode for apps
 /// Returns true if dark mode is enabled, false for light mode
 #[cfg(target_os = "windows")]

@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+#[cfg(target_os = "macos")]
 use std::process::Command;
 use std::sync::{Arc, RwLock};
 use std::thread;
@@ -30,6 +31,8 @@ use crate::ui::menu::{
     build_menu_with_context, build_tooltip, collect_targets_for_all, format_command_label,
     parse_menu_action,
 };
+#[cfg(target_os = "windows")]
+use crate::utils::hidden_command;
 
 const IDLE_THRESHOLD: Duration = Duration::from_secs(30);
 const IDLE_MULTIPLIER: u64 = 2; // Idle poll interval = base * IDLE_MULTIPLIER
@@ -160,7 +163,7 @@ pub fn run() -> Result<()> {
                     let _ = Command::new("open").arg("-t").arg(&path_str).spawn();
                     
                     #[cfg(target_os = "windows")]
-                    let _ = Command::new("notepad").arg(&path_str).spawn();
+                    let _ = hidden_command("notepad").arg(&path_str).spawn();
                     
                     state.last_feedback = Some(KillFeedback::info(format!(
                         "Opened config file: {}",
@@ -846,7 +849,7 @@ fn get_process_cwd(pid: i32) -> Option<std::path::PathBuf> {
 fn get_process_cwd(pid: i32) -> Option<std::path::PathBuf> {
     // On Windows, getting a process's CWD is more complex
     // We use wmic which is available on most Windows versions
-    let out = Command::new("wmic")
+    let out = hidden_command("wmic")
         .args([
             "process",
             "where",
@@ -934,7 +937,7 @@ fn is_safe_path(path: &std::path::Path) -> bool {
 
 
 fn get_git_repo_name(path: &std::path::Path) -> Option<String> {
-    let out = Command::new("git")
+    let out = hidden_command("git")
         .args([
             "-C",
             &path.to_string_lossy(),

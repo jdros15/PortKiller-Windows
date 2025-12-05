@@ -1,15 +1,14 @@
 use std::collections::HashMap;
-use std::process::Command;
 
 use anyhow::Result;
 use log::warn;
 
 use crate::model::{DockerContainerInfo, KillFeedback};
-use crate::utils::find_command;
+use crate::utils::{find_command, hidden_command};
 
 pub fn query_docker_port_map() -> Result<HashMap<u16, DockerContainerInfo>> {
     let mut map = HashMap::new();
-    let out = Command::new(find_command("docker"))
+    let out = hidden_command(find_command("docker"))
         .args(["ps", "--format", "{{.ID}}\t{{.Names}}\t{{.Ports}}"])
         .output();
     let out = match out {
@@ -62,7 +61,7 @@ pub fn query_docker_port_map() -> Result<HashMap<u16, DockerContainerInfo>> {
 }
 
 pub fn run_docker_stop(container: &str) -> KillFeedback {
-    let res = Command::new(find_command("docker"))
+    let res = hidden_command(find_command("docker"))
         .args(["stop", container])
         .output();
     match res {

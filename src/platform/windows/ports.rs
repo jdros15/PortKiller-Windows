@@ -1,7 +1,8 @@
 //! Windows port scanning implementation using netstat
 
 use std::collections::HashSet;
-use std::process::Command;
+
+use crate::utils::hidden_command;
 
 use anyhow::{Context, Result, anyhow};
 
@@ -12,8 +13,8 @@ pub fn scan_ports(port_ranges: &[(u16, u16)]) -> Result<Vec<ProcessInfo>> {
         ranges.iter().any(|(s, e)| port >= *s && port <= *e)
     }
 
-    // Run netstat to get listening ports
-    let output = Command::new("netstat")
+    // Run netstat to get listening ports (hidden to prevent console flicker)
+    let output = hidden_command("netstat")
         .args(["-ano", "-p", "TCP"])
         .output()
         .context("failed to execute netstat")?;
@@ -128,7 +129,7 @@ fn get_process_name(pid: u32) -> Option<String> {
 /// Used to mitigate TOCTOU race conditions before killing a process.
 pub fn verify_pid_is_listener(pid: i32) -> bool {
     // Re-scan and check if PID is still listening
-    if let Ok(output) = Command::new("netstat")
+    if let Ok(output) = hidden_command("netstat")
         .args(["-ano", "-p", "TCP"])
         .output()
     {
