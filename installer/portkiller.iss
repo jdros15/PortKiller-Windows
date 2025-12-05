@@ -4,7 +4,7 @@
 #define MyAppName "PortKiller"
 #define MyAppVersion "0.3.0-win"
 #define MyAppPublisher "Samarth Gupta"
-#define MyAppURL "https://github.com/gupsammy/PortKiller"
+#define MyAppURL "https://github.com/jdros15/PortKiller-Windows"
 #define MyAppExeName "portkiller.exe"
 #define MyAppId "{{B8F7E8A0-9C3D-4E5F-8A1B-2D3C4E5F6A7B}"
 
@@ -46,23 +46,24 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
-Name: "startup"; Description: "Launch {#MyAppName} at Windows startup"; GroupDescription: "Startup Options:"; Flags: unchecked
+Name: "startup"; Description: "Launch {#MyAppName} at Windows startup"; GroupDescription: "Startup Options:"
 
 [Files]
 Source: "..\target\release\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\assets\app-logo-color.png"; DestDir: "{app}\assets"; Flags: ignoreversion
 Source: "..\assets\app-icon.ico"; DestDir: "{app}\assets"; Flags: ignoreversion
-Source: "..\README.md"; DestDir: "{app}"; Flags: ignoreversion isreadme
+Source: "..\README.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
-Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
+Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; AppUserModelID: "PortKiller.App"
 Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
-Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
-Name: "{userstartup}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: startup
+Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon; AppUserModelID: "PortKiller.App"
+Name: "{userstartup}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: startup; AppUserModelID: "PortKiller.App"
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall skipifsilent
+Filename: "{#MyAppURL}"; Description: "View Readme"; Flags: postinstall shellexec nowait skipifsilent
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{userappdata}\PortKiller"
