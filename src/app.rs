@@ -31,7 +31,6 @@ use crate::ui::menu::{
     build_menu_with_context, build_tooltip, collect_targets_for_all, format_command_label,
     parse_menu_action,
 };
-#[cfg(target_os = "windows")]
 use crate::utils::hidden_command;
 
 const IDLE_THRESHOLD: Duration = Duration::from_secs(30);
