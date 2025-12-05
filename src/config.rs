@@ -1,6 +1,8 @@
-use std::fs::{self, Permissions};
-use std::os::unix::fs::PermissionsExt;
+use std::fs;
 use std::path::PathBuf;
+
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
 
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
@@ -28,8 +30,20 @@ pub struct MonitoringConfig {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(default)]
 pub struct IntegrationsConfig {
+    #[cfg(target_os = "macos")]
+    #[serde(default = "default_true")]
     pub brew_enabled: bool,
+    
+    #[serde(default = "default_true")]
     pub docker_enabled: bool,
+    
+    #[cfg(target_os = "windows")]
+    #[serde(default = "default_true")]
+    pub windows_services_enabled: bool,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -69,8 +83,11 @@ impl Default for MonitoringConfig {
 impl Default for IntegrationsConfig {
     fn default() -> Self {
         Self {
+            #[cfg(target_os = "macos")]
             brew_enabled: true,
             docker_enabled: true,
+            #[cfg(target_os = "windows")]
+            windows_services_enabled: true,
         }
     }
 }
@@ -82,16 +99,35 @@ impl Default for NotificationsConfig {
 }
 
 pub fn get_config_path() -> PathBuf {
-    let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
-    PathBuf::from(home).join(".portkiller.json")
+    #[cfg(target_os = "macos")]
+    {
+        let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
+        PathBuf::from(home).join(".portkiller.json")
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        dirs::config_dir()
+            .unwrap_or_else(|| PathBuf::from("."))
+            .join("PortKiller")
+            .join("portkiller.json")
+    }
+
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    {
+        let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
+        PathBuf::from(home).join(".portkiller.json")
+    }
 }
 
 pub fn load_or_create_config() -> Result<Config> {
     let path = get_config_path();
 
     if path.exists() {
-        // Validate file permissions (should be 0600 for security)
+        // Validate file permissions (should be 0600 for security on Unix)
+        #[cfg(unix)]
         ensure_secure_permissions(&path)?;
+        
         let content = fs::read_to_string(&path).context("failed to read config file")?;
         let config: Config =
             serde_json::from_str(&content).context("failed to parse config file")?;
@@ -106,15 +142,30 @@ pub fn load_or_create_config() -> Result<Config> {
 
 pub fn save_config(config: &Config) -> Result<()> {
     let path = get_config_path();
+    
+    // Ensure parent directory exists (important for Windows)
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).context("failed to create config directory")?;
+    }
+    
     let content = serde_json::to_string_pretty(config).context("failed to serialize config")?;
     fs::write(&path, &content).context("failed to write config file")?;
-    // Set secure permissions (owner read/write only)
-    fs::set_permissions(&path, Permissions::from_mode(0o600))
-        .context("failed to set config file permissions")?;
+    
+    // Set secure permissions (owner read/write only) on Unix
+    #[cfg(unix)]
+    {
+        use std::fs::Permissions;
+        fs::set_permissions(&path, Permissions::from_mode(0o600))
+            .context("failed to set config file permissions")?;
+    }
+    
     Ok(())
 }
 
+#[cfg(unix)]
 fn ensure_secure_permissions(path: &PathBuf) -> Result<()> {
+    use std::fs::Permissions;
+    
     let metadata = fs::metadata(path).context("failed to read config file metadata")?;
     let mode = metadata.permissions().mode();
     // Check if group or others have any permissions (should be 0600)
@@ -136,7 +187,10 @@ pub fn load_and_validate_config() -> Result<Config> {
     if !path.exists() {
         anyhow::bail!("config file does not exist");
     }
+    
+    #[cfg(unix)]
     ensure_secure_permissions(&path)?;
+    
     let content = fs::read_to_string(&path).context("failed to read config file")?;
     let config: Config = serde_json::from_str(&content).context("failed to parse config file")?;
     validate_config(&config)?;
@@ -159,3 +213,4 @@ fn validate_config(config: &Config) -> Result<()> {
     }
     Ok(())
 }
+

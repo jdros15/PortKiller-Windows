@@ -7,7 +7,6 @@ use std::time::{Duration, Instant};
 use anyhow::{Context, Result};
 use crossbeam_channel::{Receiver, Sender};
 use log::{error, warn};
-use nix::errno::Errno;
 use notify::{Event as NotifyEvent, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use tray_icon::menu::MenuEvent;
 use tray_icon::{TrayIcon, TrayIconBuilder};
@@ -17,8 +16,11 @@ use winit::event_loop::{ControlFlow, EventLoop, EventLoopProxy};
 use crate::config::{
     get_config_path, load_and_validate_config, load_or_create_config, save_config,
 };
+#[cfg(target_os = "macos")]
 use crate::integrations::brew::{query_brew_services_map, run_brew_stop};
 use crate::integrations::docker::{query_docker_port_map, run_docker_stop};
+#[cfg(target_os = "windows")]
+use crate::integrations::windows_services::{query_windows_services_map, run_service_stop};
 use crate::model::*;
 use crate::notify::maybe_notify_changes;
 use crate::process::kill::terminate_pid;
@@ -45,7 +47,10 @@ pub fn run() -> Result<()> {
         config: config.clone(),
         project_cache: HashMap::new(),
         docker_port_map: HashMap::new(),
+        #[cfg(target_os = "macos")]
         brew_services_map: HashMap::new(),
+        #[cfg(target_os = "windows")]
+        windows_services_map: HashMap::new(),
     };
 
     let event_loop = EventLoop::<UserEvent>::with_user_event()
@@ -113,16 +118,26 @@ pub fn run() -> Result<()> {
                     if state.config.integrations.docker_enabled {
                         state.docker_port_map = query_docker_port_map().unwrap_or_default();
                     }
+                    #[cfg(target_os = "macos")]
                     if state.config.integrations.brew_enabled {
                         state.brew_services_map = query_brew_services_map().unwrap_or_default();
+                    }
+                    #[cfg(target_os = "windows")]
+                    if state.config.integrations.windows_services_enabled {
+                        state.windows_services_map = query_windows_services_map().unwrap_or_default();
                     }
                 }
                 // Clear maps if integrations disabled (check every time)
                 if !state.config.integrations.docker_enabled {
                     state.docker_port_map.clear();
                 }
+                #[cfg(target_os = "macos")]
                 if !state.config.integrations.brew_enabled {
                     state.brew_services_map.clear();
+                }
+                #[cfg(target_os = "windows")]
+                if !state.config.integrations.windows_services_enabled {
+                    state.windows_services_map.clear();
                 }
                 // Derive project info in best-effort mode
                 refresh_projects_for(&mut state);
@@ -140,7 +155,13 @@ pub fn run() -> Result<()> {
                 MenuAction::EditConfig => {
                     let config_path = get_config_path();
                     let path_str = config_path.to_string_lossy().to_string();
+                    
+                    #[cfg(target_os = "macos")]
                     let _ = Command::new("open").arg("-t").arg(&path_str).spawn();
+                    
+                    #[cfg(target_os = "windows")]
+                    let _ = Command::new("notepad").arg(&path_str).spawn();
+                    
                     state.last_feedback = Some(KillFeedback::info(format!(
                         "Opened config file: {}",
                         path_str
@@ -248,7 +269,7 @@ pub fn run() -> Result<()> {
                     }
                 }
                 MenuAction::KillAll => {
-                    // Filter to only regular processes (exclude Docker and Brew)
+                    // Filter to only regular processes (exclude Docker and managed services)
                     let regular_processes: Vec<ProcessInfo> = state
                         .processes
                         .iter()
@@ -257,11 +278,22 @@ pub fn run() -> Result<()> {
                             if state.docker_port_map.contains_key(&p.port) {
                                 return false;
                             }
-                            // Exclude Brew services
+                            // Exclude managed services (Brew on macOS, Windows Services on Windows)
+                            #[cfg(target_os = "macos")]
                             if crate::integrations::brew::get_brew_managed_service(
                                 &p.command,
                                 p.port,
                                 &state.brew_services_map,
+                            )
+                            .is_some()
+                            {
+                                return false;
+                            }
+                            #[cfg(target_os = "windows")]
+                            if crate::integrations::windows_services::get_windows_managed_service(
+                                &p.command,
+                                p.port,
+                                &state.windows_services_map,
                             )
                             .is_some()
                             {
@@ -322,11 +354,13 @@ pub fn run() -> Result<()> {
                         }
                     }
                 }
+                #[cfg(target_os = "macos")]
                 MenuAction::BrewStop { service } => {
                     if let Some(sender) = worker_sender.as_ref() {
                         let _ = sender.send(WorkerCommand::BrewStop { service });
                     }
                 }
+                #[cfg(target_os = "macos")]
                 MenuAction::BrewStopAll => {
                     if let Some(sender) = worker_sender.as_ref() {
                         // Collect all unique brew services from current processes
@@ -346,6 +380,37 @@ pub fn run() -> Result<()> {
 
                         for service in services {
                             let _ = sender.send(WorkerCommand::BrewStop {
+                                service: service.clone(),
+                            });
+                        }
+                    }
+                }
+                #[cfg(target_os = "windows")]
+                MenuAction::WindowsServiceStop { service } => {
+                    if let Some(sender) = worker_sender.as_ref() {
+                        let _ = sender.send(WorkerCommand::WindowsServiceStop { service });
+                    }
+                }
+                #[cfg(target_os = "windows")]
+                MenuAction::WindowsServiceStopAll => {
+                    if let Some(sender) = worker_sender.as_ref() {
+                        // Collect all unique Windows services from current processes
+                        let services: Vec<String> = state
+                            .processes
+                            .iter()
+                            .filter_map(|p| {
+                                crate::integrations::windows_services::get_windows_managed_service(
+                                    &p.command,
+                                    p.port,
+                                    &state.windows_services_map,
+                                )
+                            })
+                            .collect::<HashSet<_>>()
+                            .into_iter()
+                            .collect();
+
+                        for service in services {
+                            let _ = sender.send(WorkerCommand::WindowsServiceStop {
                                 service: service.clone(),
                             });
                         }
@@ -552,8 +617,14 @@ fn spawn_worker(
                     let feedback = run_docker_stop(&container);
                     proxy.send_event(UserEvent::KillFeedback(feedback)).is_ok()
                 }
+                #[cfg(target_os = "macos")]
                 WorkerCommand::BrewStop { service } => {
                     let feedback = run_brew_stop(&service);
+                    proxy.send_event(UserEvent::KillFeedback(feedback)).is_ok()
+                }
+                #[cfg(target_os = "windows")]
+                WorkerCommand::WindowsServiceStop { service } => {
+                    let feedback = run_service_stop(&service);
                     proxy.send_event(UserEvent::KillFeedback(feedback)).is_ok()
                 }
             };
@@ -604,7 +675,7 @@ fn handle_batch_kill(proxy: &EventLoopProxy<UserEvent>, targets: Vec<KillTarget>
     let mut already = 0usize;
     let mut denied = 0usize;
     let mut timed_out = 0usize;
-    let mut failures: Vec<(KillTarget, Errno)> = Vec::new();
+    let mut failures: Vec<(KillTarget, i32)> = Vec::new();
 
     for target in targets {
         match terminate_pid(target.pid) {
@@ -612,11 +683,17 @@ fn handle_batch_kill(proxy: &EventLoopProxy<UserEvent>, targets: Vec<KillTarget>
             KillOutcome::AlreadyExited => already += 1,
             KillOutcome::PermissionDenied => {
                 denied += 1;
-                failures.push((target, Errno::EPERM));
+                #[cfg(target_os = "windows")]
+                failures.push((target, 5)); // ERROR_ACCESS_DENIED
+                #[cfg(target_os = "macos")]
+                failures.push((target, 1)); // EPERM
             }
             KillOutcome::TimedOut => {
                 timed_out += 1;
-                failures.push((target, Errno::ETIMEDOUT));
+                #[cfg(target_os = "windows")]
+                failures.push((target, 121)); // ERROR_SEM_TIMEOUT
+                #[cfg(target_os = "macos")]
+                failures.push((target, 60)); // ETIMEDOUT
             }
             KillOutcome::Failed(err) => failures.push((target, err)),
         }
@@ -750,6 +827,7 @@ fn resolve_project_info(pid: i32) -> Option<ProjectInfo> {
     Some(ProjectInfo { name, path })
 }
 
+#[cfg(target_os = "macos")]
 fn get_process_cwd(pid: i32) -> Option<std::path::PathBuf> {
     let out = Command::new("lsof")
         .args(["-a", "-p", &pid.to_string(), "-d", "cwd", "-Fn"])
@@ -764,29 +842,96 @@ fn get_process_cwd(pid: i32) -> Option<std::path::PathBuf> {
         .map(std::path::PathBuf::from)
 }
 
+#[cfg(target_os = "windows")]
+fn get_process_cwd(pid: i32) -> Option<std::path::PathBuf> {
+    // On Windows, getting a process's CWD is more complex
+    // We use wmic which is available on most Windows versions
+    let out = Command::new("wmic")
+        .args([
+            "process",
+            "where",
+            &format!("ProcessId={}", pid),
+            "get",
+            "ExecutablePath",
+            "/value",
+        ])
+        .output()
+        .ok()?;
+    
+    if !out.status.success() {
+        return None;
+    }
+    
+    // Parse output like "ExecutablePath=C:\path\to\app.exe"
+    let output = String::from_utf8_lossy(&out.stdout);
+    for line in output.lines() {
+        if let Some(path_str) = line.strip_prefix("ExecutablePath=") {
+            let path = std::path::Path::new(path_str.trim());
+            // Return parent directory of the executable as approximate CWD
+            return path.parent().map(|p| p.to_path_buf());
+        }
+    }
+    None
+}
+
 fn is_safe_path(path: &std::path::Path) -> bool {
     // Resolve to canonical path to prevent traversal attacks
     let canonical = match path.canonicalize() {
         Ok(p) => p,
         Err(_) => return false,
     };
-    // Allow paths under home directory
-    if let Ok(home) = std::env::var("HOME")
-        && canonical.starts_with(&home)
+    
+    #[cfg(target_os = "macos")]
     {
-        return true;
+        // Allow paths under home directory
+        if let Ok(home) = std::env::var("HOME")
+            && canonical.starts_with(&home)
+        {
+            return true;
+        }
+        // Allow /tmp and /var/folders (macOS temp)
+        // Note: On macOS, /tmp -> /private/tmp and /var -> /private/var after canonicalization
+        if canonical.starts_with("/tmp")
+            || canonical.starts_with("/private/tmp")
+            || canonical.starts_with("/var/folders")
+            || canonical.starts_with("/private/var/folders")
+        {
+            return true;
+        }
     }
-    // Allow /tmp and /var/folders (macOS temp)
-    // Note: On macOS, /tmp -> /private/tmp and /var -> /private/var after canonicalization
-    if canonical.starts_with("/tmp")
-        || canonical.starts_with("/private/tmp")
-        || canonical.starts_with("/var/folders")
-        || canonical.starts_with("/private/var/folders")
+    
+    #[cfg(target_os = "windows")]
     {
-        return true;
+        // Allow paths under user profile
+        if let Ok(userprofile) = std::env::var("USERPROFILE") {
+            if canonical.starts_with(&userprofile) {
+                return true;
+            }
+        }
+        // Allow common dev locations
+        if let Some(path_str) = canonical.to_str() {
+            let path_lower = path_str.to_lowercase();
+            // Common development directories
+            if path_lower.contains("\\documents\\")
+                || path_lower.contains("\\projects\\")
+                || path_lower.contains("\\source\\repos\\")
+                || path_lower.contains("\\dev\\")
+                || path_lower.contains("\\code\\")
+            {
+                return true;
+            }
+        }
+        // Allow temp directories
+        if let Ok(temp) = std::env::var("TEMP") {
+            if canonical.starts_with(&temp) {
+                return true;
+            }
+        }
     }
+    
     false
 }
+
 
 fn get_git_repo_name(path: &std::path::Path) -> Option<String> {
     let out = Command::new("git")

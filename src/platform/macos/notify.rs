@@ -1,3 +1,5 @@
+//! macOS notifications using terminal-notifier
+
 use std::collections::HashSet;
 use std::process::Command;
 

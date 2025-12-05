@@ -8,14 +8,20 @@ use crate::model::{AppState, FeedbackSeverity, KillFeedback, ProcessInfo};
 const MAX_TOOLTIP_ENTRIES: usize = 5;
 const MENU_ID_KILL_ALL: &str = "kill_all";
 const MENU_ID_DOCKER_STOP_ALL: &str = "docker_stop_all";
+#[cfg(target_os = "macos")]
 const MENU_ID_BREW_STOP_ALL: &str = "brew_stop_all";
+#[cfg(target_os = "windows")]
+const MENU_ID_SERVICE_STOP_ALL: &str = "service_stop_all";
 const MENU_ID_QUIT: &str = "quit";
 const MENU_ID_EDIT_CONFIG: &str = "edit_config";
 const MENU_ID_RELOAD_CONFIG: &str = "reload_config";
 const MENU_ID_LAUNCH_AT_LOGIN: &str = "launch_at_login";
 const MENU_ID_PROCESS_PREFIX: &str = "process_";
 const MENU_ID_DOCKER_STOP_PREFIX: &str = "docker_stop_";
+#[cfg(target_os = "macos")]
 const MENU_ID_BREW_STOP_PREFIX: &str = "brew_stop_";
+#[cfg(target_os = "windows")]
+const MENU_ID_SERVICE_STOP_PREFIX: &str = "service_stop_";
 const MENU_ID_EMPTY: &str = "empty";
 
 /// Maps common container names to friendly display names
@@ -66,21 +72,40 @@ pub fn build_menu_with_context(state: &AppState) -> Result<Menu> {
         let item = MenuItem::with_id(MENU_ID_EMPTY, "No dev ports listening", false, None);
         menu.append(&item)?;
     } else {
-        // Separate processes into Docker, Brew, and regular processes
+        // Separate processes into Docker, managed services, and regular processes
         let mut docker_items: Vec<(&ProcessInfo, &crate::model::DockerContainerInfo)> = Vec::new();
+        #[cfg(target_os = "macos")]
         let mut brew_items: Vec<(&ProcessInfo, String)> = Vec::new();
+        #[cfg(target_os = "windows")]
+        let mut service_items: Vec<(&ProcessInfo, String)> = Vec::new();
         let mut regular_processes: Vec<&ProcessInfo> = Vec::new();
 
         for process in processes {
             if let Some(dc) = state.docker_port_map.get(&process.port) {
                 docker_items.push((process, dc));
-            } else if let Some(service) = crate::integrations::brew::get_brew_managed_service(
-                &process.command,
-                process.port,
-                &state.brew_services_map,
-            ) {
-                brew_items.push((process, service));
             } else {
+                #[cfg(target_os = "macos")]
+                {
+                    if let Some(service) = crate::integrations::brew::get_brew_managed_service(
+                        &process.command,
+                        process.port,
+                        &state.brew_services_map,
+                    ) {
+                        brew_items.push((process, service));
+                        continue;
+                    }
+                }
+                #[cfg(target_os = "windows")]
+                {
+                    if let Some(service) = crate::integrations::windows_services::get_windows_managed_service(
+                        &process.command,
+                        process.port,
+                        &state.windows_services_map,
+                    ) {
+                        service_items.push((process, service));
+                        continue;
+                    }
+                }
                 regular_processes.push(process);
             }
         }
@@ -206,7 +231,8 @@ pub fn build_menu_with_context(state: &AppState) -> Result<Menu> {
             }
         }
 
-        // === BREW SECTION ===
+        // === BREW SECTION (macOS only) ===
+        #[cfg(target_os = "macos")]
         if !brew_items.is_empty() {
             if has_any_section {
                 menu.append(&PredefinedMenuItem::separator())?;
@@ -261,6 +287,64 @@ pub fn build_menu_with_context(state: &AppState) -> Result<Menu> {
                 menu.append(&stop_all)?;
             }
         }
+
+        // === WINDOWS SERVICES SECTION (Windows only) ===
+        #[cfg(target_os = "windows")]
+        if !service_items.is_empty() {
+            if has_any_section {
+                menu.append(&PredefinedMenuItem::separator())?;
+            }
+
+            // Group by service name
+            let mut by_service: BTreeMap<String, Vec<u16>> = BTreeMap::new();
+            for (process, service) in &service_items {
+                by_service
+                    .entry(service.clone())
+                    .or_default()
+                    .push(process.port);
+            }
+
+            let header = MenuItem::with_id(
+                "header_services",
+                format!("Windows Services · {}", by_service.len()),
+                false,
+                None,
+            );
+            menu.append(&header)?;
+
+            // Check if we need Stop All before consuming the map
+            let needs_stop_all = by_service.len() > 1;
+
+            // Create clickable menu item for each service
+            for (service_name, mut ports) in by_service {
+                ports.sort();
+
+                // Build label with friendly name
+                let friendly = crate::integrations::windows_services::friendly_service_name(&service_name);
+                let ports_str = ports
+                    .iter()
+                    .map(|p| p.to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                let main_label = format!("{} · {}", ports_str, friendly);
+
+                // Create clickable menu item that stops the service when clicked
+                let service_item = MenuItem::with_id(
+                    format!("{}{}", MENU_ID_SERVICE_STOP_PREFIX, service_name),
+                    main_label,
+                    true,
+                    None,
+                );
+                menu.append(&service_item)?;
+            }
+
+            // Stop All only if multiple services
+            if needs_stop_all {
+                let stop_all =
+                    MenuItem::with_id(MENU_ID_SERVICE_STOP_ALL, "Stop All Services", true, None);
+                menu.append(&stop_all)?;
+            }
+        }
     }
 
     menu.append(&PredefinedMenuItem::separator())?;
@@ -300,8 +384,6 @@ pub fn parse_menu_action(id: &MenuId) -> Option<crate::model::MenuAction> {
         Some(crate::model::MenuAction::KillAll)
     } else if raw == MENU_ID_DOCKER_STOP_ALL {
         Some(crate::model::MenuAction::DockerStopAll)
-    } else if raw == MENU_ID_BREW_STOP_ALL {
-        Some(crate::model::MenuAction::BrewStopAll)
     } else if raw == MENU_ID_QUIT {
         Some(crate::model::MenuAction::Quit)
     } else if raw == MENU_ID_EDIT_CONFIG {
@@ -314,16 +396,35 @@ pub fn parse_menu_action(id: &MenuId) -> Option<crate::model::MenuAction> {
         Some(crate::model::MenuAction::DockerStop {
             container: sanitize_identifier(rest),
         })
-    } else if let Some(rest) = raw.strip_prefix(MENU_ID_BREW_STOP_PREFIX) {
-        Some(crate::model::MenuAction::BrewStop {
-            service: sanitize_identifier(rest),
-        })
     } else if let Some(remainder) = raw.strip_prefix(MENU_ID_PROCESS_PREFIX) {
         let mut parts = remainder.split('_');
         let pid = parts.next()?.parse::<i32>().ok()?;
         let _port = parts.next()?.parse::<u16>().ok()?;
         Some(crate::model::MenuAction::KillPid { pid })
     } else {
+        // Platform-specific service actions
+        #[cfg(target_os = "macos")]
+        {
+            if raw == MENU_ID_BREW_STOP_ALL {
+                return Some(crate::model::MenuAction::BrewStopAll);
+            }
+            if let Some(rest) = raw.strip_prefix(MENU_ID_BREW_STOP_PREFIX) {
+                return Some(crate::model::MenuAction::BrewStop {
+                    service: sanitize_identifier(rest),
+                });
+            }
+        }
+        #[cfg(target_os = "windows")]
+        {
+            if raw == MENU_ID_SERVICE_STOP_ALL {
+                return Some(crate::model::MenuAction::WindowsServiceStopAll);
+            }
+            if let Some(rest) = raw.strip_prefix(MENU_ID_SERVICE_STOP_PREFIX) {
+                return Some(crate::model::MenuAction::WindowsServiceStop {
+                    service: sanitize_identifier(rest),
+                });
+            }
+        }
         None
     }
 }

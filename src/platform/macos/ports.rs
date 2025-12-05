@@ -1,3 +1,5 @@
+//! macOS port scanning implementation using lsof
+
 use std::collections::HashSet;
 use std::process::Command;
 

@@ -1,3 +1,5 @@
+//! macOS launch-at-login using SMAppService (macOS 13+) or LaunchAgent fallback
+
 use anyhow::Result;
 use log::{debug, warn};
 
@@ -40,7 +42,6 @@ fn should_use_smappservice() -> bool {
 // SMAppService Implementation (macOS 13.0+)
 // ============================================================================
 
-#[cfg(target_os = "macos")]
 mod smapp {
     use anyhow::Result;
     use log::{debug, info, warn};
@@ -95,7 +96,6 @@ mod smapp {
 // LaunchAgent Implementation (Fallback for macOS < 13.0)
 // ============================================================================
 
-#[cfg(target_os = "macos")]
 mod launchagent {
     use anyhow::Result;
     use auto_launch::AutoLaunchBuilder;
@@ -145,49 +145,27 @@ mod launchagent {
 
 /// Enables launch-at-login using the appropriate method for the current macOS version
 pub fn enable_launch_at_login() -> Result<()> {
-    #[cfg(target_os = "macos")]
-    {
-        if should_use_smappservice() {
-            smapp::enable()
-        } else {
-            launchagent::enable()
-        }
+    if should_use_smappservice() {
+        smapp::enable()
+    } else {
+        launchagent::enable()
     }
-
-    #[cfg(not(target_os = "macos"))]
-    Err(anyhow::anyhow!(
-        "Launch-at-login is only supported on macOS"
-    ))
 }
 
 /// Disables launch-at-login using the appropriate method for the current macOS version
 pub fn disable_launch_at_login() -> Result<()> {
-    #[cfg(target_os = "macos")]
-    {
-        if should_use_smappservice() {
-            smapp::disable()
-        } else {
-            launchagent::disable()
-        }
+    if should_use_smappservice() {
+        smapp::disable()
+    } else {
+        launchagent::disable()
     }
-
-    #[cfg(not(target_os = "macos"))]
-    Err(anyhow::anyhow!(
-        "Launch-at-login is only supported on macOS"
-    ))
 }
 
 /// Checks if launch-at-login is currently enabled
 pub fn is_launch_at_login_enabled() -> Result<bool> {
-    #[cfg(target_os = "macos")]
-    {
-        if should_use_smappservice() {
-            smapp::is_enabled()
-        } else {
-            launchagent::is_enabled()
-        }
+    if should_use_smappservice() {
+        smapp::is_enabled()
+    } else {
+        launchagent::is_enabled()
     }
-
-    #[cfg(not(target_os = "macos"))]
-    Ok(false)
 }

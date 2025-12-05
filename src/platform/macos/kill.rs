@@ -1,3 +1,5 @@
+//! macOS process termination using SIGTERM/SIGKILL
+
 use std::thread;
 use std::time::Duration;
 
@@ -6,7 +8,7 @@ use nix::sys::signal::{Signal, kill};
 use nix::unistd::Pid;
 
 use crate::model::KillOutcome;
-use crate::process::ports::verify_pid_is_listener;
+use crate::platform::macos::ports::verify_pid_is_listener;
 
 const SIGTERM_GRACE: Duration = Duration::from_secs(2);
 const SIGKILL_GRACE: Duration = Duration::from_secs(1);
@@ -18,7 +20,7 @@ pub fn terminate_pid(pid_raw: i32) -> KillOutcome {
     // Check if process exists
     match kill(pid, None) {
         Err(Errno::ESRCH) => return KillOutcome::AlreadyExited,
-        Err(err) => return KillOutcome::Failed(err),
+        Err(err) => return KillOutcome::Failed(err as i32),
         Ok(()) => {}
     }
 
@@ -39,14 +41,14 @@ pub fn terminate_pid(pid_raw: i32) -> KillOutcome {
         Ok(()) => {}
         Err(Errno::ESRCH) => return KillOutcome::AlreadyExited,
         Err(Errno::EPERM) => last_perm_denied = true,
-        Err(err) => return KillOutcome::Failed(err),
+        Err(err) => return KillOutcome::Failed(err as i32),
     }
 
     // Wait for graceful shutdown
     match wait_for_exit(pid, SIGTERM_GRACE) {
         Ok(true) => return KillOutcome::Success,
         Ok(false) => {}
-        Err(err) => return KillOutcome::Failed(err),
+        Err(err) => return KillOutcome::Failed(err as i32),
     }
 
     // Force kill if still running
@@ -54,7 +56,7 @@ pub fn terminate_pid(pid_raw: i32) -> KillOutcome {
         Ok(()) => {}
         Err(Errno::ESRCH) => return KillOutcome::Success,
         Err(Errno::EPERM) => last_perm_denied = true,
-        Err(err) => return KillOutcome::Failed(err),
+        Err(err) => return KillOutcome::Failed(err as i32),
     }
 
     match wait_for_exit(pid, SIGKILL_GRACE) {
@@ -66,7 +68,7 @@ pub fn terminate_pid(pid_raw: i32) -> KillOutcome {
                 KillOutcome::TimedOut
             }
         }
-        Err(err) => KillOutcome::Failed(err),
+        Err(err) => KillOutcome::Failed(err as i32),
     }
 }
 

@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-use nix::errno::Errno;
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct ProcessInfo {
@@ -26,8 +25,14 @@ pub enum MenuAction {
     KillAll,
     DockerStop { container: String },
     DockerStopAll,
+    #[cfg(target_os = "macos")]
     BrewStop { service: String },
+    #[cfg(target_os = "macos")]
     BrewStopAll,
+    #[cfg(target_os = "windows")]
+    WindowsServiceStop { service: String },
+    #[cfg(target_os = "windows")]
+    WindowsServiceStopAll,
     EditConfig,
     ReloadConfig,
     LaunchAtLogin,
@@ -39,7 +44,10 @@ pub enum WorkerCommand {
     KillPid(KillTarget),
     KillAll(Vec<KillTarget>),
     DockerStop { container: String },
+    #[cfg(target_os = "macos")]
     BrewStop { service: String },
+    #[cfg(target_os = "windows")]
+    WindowsServiceStop { service: String },
 }
 
 #[derive(Clone, Debug)]
@@ -86,7 +94,10 @@ pub struct AppState {
     pub config: crate::config::Config,
     pub project_cache: HashMap<i32, ProjectInfo>,
     pub docker_port_map: HashMap<u16, DockerContainerInfo>,
+    #[cfg(target_os = "macos")]
     pub brew_services_map: HashMap<String, String>, // service_name -> status
+    #[cfg(target_os = "windows")]
+    pub windows_services_map: HashMap<String, String>, // service_name -> status
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -95,7 +106,7 @@ pub enum KillOutcome {
     AlreadyExited,
     PermissionDenied,
     TimedOut,
-    Failed(Errno),
+    Failed(i32), // Platform-agnostic error code
 }
 
 #[derive(Clone, Debug)]
