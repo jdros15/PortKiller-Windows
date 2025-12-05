@@ -38,7 +38,6 @@ Every developer knows the drill: `netstat -ano | findstr 3000`, squint at the ou
 <img src="screenshots/ui.png" alt="PortKiller Menu UI" width="400">
 <br>
 <em>System tray interface showing active processes, Docker containers, and Services</em>
-*(Note: Screenshot from macOS version, Windows UI is similar)*
 
 ## Installation
 
