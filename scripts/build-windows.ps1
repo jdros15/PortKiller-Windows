@@ -236,6 +236,51 @@ SOFTWARE.
     Write-Host ""
 }
 
+# Step 4.5: Create Portable Version
+Write-Step "Creating Portable Zip..."
+$PortableDir = "$BuildDir\portable"
+$ZipPath = "$PortableDir\PortKiller-$Version-Portable.zip"
+
+# Ensure portable directory exists
+if (-not (Test-Path $PortableDir)) {
+    New-Item -ItemType Directory -Path $PortableDir | Out-Null
+}
+
+$PortableFiles = @(
+    "$BuildDir\$BinaryName.exe",
+    "README.md",
+    "LICENSE"
+)
+
+# Verify all files exist
+$FilesToZip = @()
+foreach ($file in $PortableFiles) {
+    if (Test-Path $file) {
+        $FilesToZip += $file
+    } else {
+        Write-Info "Warning: Portable file not found: $file"
+    }
+}
+
+if ($FilesToZip.Count -gt 0) {
+    # Remove existing zip if it exists
+    if (Test-Path $ZipPath) {
+        Remove-Item $ZipPath -Force
+    }
+    
+    Compress-Archive -Path $FilesToZip -DestinationPath $ZipPath
+    
+    if (Test-Path $ZipPath) {
+        $ZipSize = (Get-Item $ZipPath).Length / 1MB
+        Write-Success "Portable Zip created: PortKiller-$Version-Portable.zip ($([math]::Round($ZipSize, 2)) MB)"
+    } else {
+        Write-Error "Failed to create portable zip"
+    }
+} else {
+    Write-Error "No files to zip!"
+}
+Write-Host ""
+
 # Step 5: Summary
 Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
 Write-Host "🎉 Build Complete!" -ForegroundColor Green
@@ -250,6 +295,11 @@ if (Test-Path "$BuildDir\$BinaryName.exe") {
 $InstallerPath = "$BuildDir\installer\PortKiller-$Version-Setup.exe"
 if (Test-Path $InstallerPath) {
     Write-Host "  • Installer: $InstallerPath" -ForegroundColor Green
+}
+
+$ZipPath = "$BuildDir\portable\PortKiller-$Version-Portable.zip"
+if (Test-Path $ZipPath) {
+    Write-Host "  • Portable:  $ZipPath" -ForegroundColor Green
 }
 
 Write-Host ""

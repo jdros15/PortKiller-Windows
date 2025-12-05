@@ -52,6 +52,8 @@ Every developer knows the drill: `netstat -ano | findstr 3000`, squint at the ou
 2. Run `portkiller.exe`
 3. The app appears in your system tray — click to see active port listeners.
 
+> **Note**: Desktop notifications may not appear or persist in the Action Center when running in portable mode, as the application is not registered with the Windows Start Menu.
+
 ### Build from Source
 
 ```powershell
