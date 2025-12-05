@@ -120,6 +120,11 @@ Have an idea or found a bug? [Open an issue](https://github.com/jdros15/PortKill
 
 MIT License — do whatever you want with it.
 
+## Credits
+
+- **Original macOS App**: [Samarth Gupta](https://github.com/gupsammy)
+- **Windows Port**: [JD Ros](https://github.com/jdros15)
+
 ## Acknowledgments
 
 Built with [tray-icon](https://github.com/tauri-apps/tray-icon), [winit](https://github.com/rust-windowing/winit), and [nix](https://github.com/nix-rust/nix).

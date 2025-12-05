@@ -8,6 +8,10 @@ use crate::utils::find_command;
 
 const BUNDLE_ID: &str = "com.samarthgupta.portkiller";
 
+pub fn notify_startup() {
+    // No startup notification needed on macOS (app icon visible in menu bar)
+}
+
 pub fn maybe_notify_changes(state: &AppState, prev: &[ProcessInfo]) {
     if !state.config.notifications.enabled {
         return;

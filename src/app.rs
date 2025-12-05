@@ -82,6 +82,10 @@ pub fn run() -> Result<()> {
         .context("failed to show tray icon")?;
 
     update_tray_display(&tray_icon, &state);
+
+    // Notify user on startup (Windows only implementation will show toast)
+    crate::notify::notify_startup();
+
     let mut worker_sender: Option<Sender<WorkerCommand>> = Some(worker_tx);
     // Initialize to past time to force first integration refresh
     let mut last_integration_refresh = Instant::now() - INTEGRATION_REFRESH_INTERVAL;

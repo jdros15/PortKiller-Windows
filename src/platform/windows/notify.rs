@@ -7,6 +7,12 @@ use crate::utils::hidden_command;
 
 use crate::model::{AppState, ProcessInfo};
 
+pub fn notify_startup() {
+    let title = "PortKiller Started";
+    let body = "Application is running in the system tray. Windows may have hidden the icon in the overflow menu (^) arrow.";
+    show_toast(title, body);
+}
+
 pub fn maybe_notify_changes(state: &AppState, prev: &[ProcessInfo]) {
     if !state.config.notifications.enabled {
         return;
