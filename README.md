@@ -49,8 +49,9 @@ Every developer knows the drill: `netstat -ano | findstr 3000`, squint at the ou
 ### Portable
 
 1. Download the latest **[Portable Executable](https://github.com/jdros15/PortKiller-Windows/releases)**
-2. Run `portkiller.exe`
-3. The app appears in your system tray — click to see active port listeners.
+2. Extract zip file
+3. Run `portkiller.exe`
+4. The app appears in your system tray — click to see active port listeners.
 
 > **Note**: Desktop notifications may not appear or persist in the Action Center when running in portable mode, as the application is not registered with the Windows Start Menu.
 
