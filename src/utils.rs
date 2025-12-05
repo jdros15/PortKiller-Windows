@@ -55,3 +55,21 @@ pub fn find_command(name: &str) -> &'static str {
     }
 }
 
+/// Check if Windows is using dark mode for apps
+/// Returns true if dark mode is enabled, false for light mode
+#[cfg(target_os = "windows")]
+pub fn is_windows_dark_mode() -> bool {
+    use winreg::enums::HKEY_CURRENT_USER;
+    use winreg::RegKey;
+    
+    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+    if let Ok(personalize) = hkcu.open_subkey("Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize") {
+        // AppsUseLightTheme: 0 = dark mode, 1 = light mode
+        if let Ok(value) = personalize.get_value::<u32, _>("AppsUseLightTheme") {
+            return value == 0;
+        }
+    }
+    // Default to light mode if we can't read the registry
+    false
+}
+

@@ -6,8 +6,16 @@ use tray_icon::Icon;
 
 // Embed both icon variants at compile time
 // Filled = active (ports listening), Outline = inactive (no ports)
-static ICON_FILLED: &[u8] = include_bytes!("../../assets/menubar-icon-filled@2x.png");
-static ICON_OUTLINE: &[u8] = include_bytes!("../../assets/menubar-icon-outline@2x.png");
+
+// Dark icons (for light mode background / macOS)
+static ICON_FILLED_DARK: &[u8] = include_bytes!("../../assets/menubar-icon-filled@2x.png");
+static ICON_OUTLINE_DARK: &[u8] = include_bytes!("../../assets/menubar-icon-outline@2x.png");
+
+// Light icons for Windows dark mode (light icons on dark taskbar)
+#[cfg(target_os = "windows")]
+static ICON_FILLED_LIGHT: &[u8] = include_bytes!("../../assets-light/menubar-icon-filled@2x.png");
+#[cfg(target_os = "windows")]
+static ICON_OUTLINE_LIGHT: &[u8] = include_bytes!("../../assets-light/menubar-icon-outline@2x.png");
 
 // Cache decoded RGBA data to avoid repeated PNG decoding
 struct CachedIconData {
@@ -16,8 +24,15 @@ struct CachedIconData {
     height: u32,
 }
 
-static ICON_ACTIVE_CACHE: OnceLock<CachedIconData> = OnceLock::new();
-static ICON_INACTIVE_CACHE: OnceLock<CachedIconData> = OnceLock::new();
+// Caches for dark theme icons (light mode / macOS)
+static ICON_ACTIVE_DARK_CACHE: OnceLock<CachedIconData> = OnceLock::new();
+static ICON_INACTIVE_DARK_CACHE: OnceLock<CachedIconData> = OnceLock::new();
+
+// Caches for light theme icons (Windows dark mode)
+#[cfg(target_os = "windows")]
+static ICON_ACTIVE_LIGHT_CACHE: OnceLock<CachedIconData> = OnceLock::new();
+#[cfg(target_os = "windows")]
+static ICON_INACTIVE_LIGHT_CACHE: OnceLock<CachedIconData> = OnceLock::new();
 
 /// Icon variant for different states
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -30,16 +45,49 @@ pub enum IconVariant {
 
 /// Create a template icon for the menu bar.
 /// Uses cached decoded RGBA data to avoid repeated PNG decoding.
+/// On Windows, selects light or dark icons based on system theme.
 /// macOS automatically adapts the color based on menu bar appearance.
+#[cfg(target_os = "macos")]
 pub fn create_template_icon(variant: IconVariant) -> Result<Icon> {
     let cached = match variant {
         IconVariant::Active => {
-            ICON_ACTIVE_CACHE.get_or_init(|| decode_png_to_rgba(ICON_FILLED).unwrap())
+            ICON_ACTIVE_DARK_CACHE.get_or_init(|| decode_png_to_rgba(ICON_FILLED_DARK).unwrap())
         }
         IconVariant::Inactive => {
-            ICON_INACTIVE_CACHE.get_or_init(|| decode_png_to_rgba(ICON_OUTLINE).unwrap())
+            ICON_INACTIVE_DARK_CACHE.get_or_init(|| decode_png_to_rgba(ICON_OUTLINE_DARK).unwrap())
         }
     };
+    Icon::from_rgba(cached.rgba.clone(), cached.width, cached.height)
+        .map_err(|e| anyhow!("failed to create icon: {e}"))
+}
+
+/// Create a template icon for the system tray.
+/// Uses cached decoded RGBA data to avoid repeated PNG decoding.
+/// On Windows, selects light icons for dark mode (dark taskbar) and 
+/// dark icons for light mode (light taskbar).
+#[cfg(target_os = "windows")]
+pub fn create_template_icon(variant: IconVariant) -> Result<Icon> {
+    use crate::utils::is_windows_dark_mode;
+    
+    let is_dark_mode = is_windows_dark_mode();
+    
+    let cached = match (variant, is_dark_mode) {
+        // Dark mode: use light icons (visible on dark taskbar)
+        (IconVariant::Active, true) => {
+            ICON_ACTIVE_LIGHT_CACHE.get_or_init(|| decode_png_to_rgba(ICON_FILLED_LIGHT).unwrap())
+        }
+        (IconVariant::Inactive, true) => {
+            ICON_INACTIVE_LIGHT_CACHE.get_or_init(|| decode_png_to_rgba(ICON_OUTLINE_LIGHT).unwrap())
+        }
+        // Light mode: use dark icons (visible on light taskbar)
+        (IconVariant::Active, false) => {
+            ICON_ACTIVE_DARK_CACHE.get_or_init(|| decode_png_to_rgba(ICON_FILLED_DARK).unwrap())
+        }
+        (IconVariant::Inactive, false) => {
+            ICON_INACTIVE_DARK_CACHE.get_or_init(|| decode_png_to_rgba(ICON_OUTLINE_DARK).unwrap())
+        }
+    };
+    
     Icon::from_rgba(cached.rgba.clone(), cached.width, cached.height)
         .map_err(|e| anyhow!("failed to create icon: {e}"))
 }
@@ -96,3 +144,4 @@ fn decode_png_to_rgba(png_data: &[u8]) -> Result<CachedIconData> {
         height,
     })
 }
+
