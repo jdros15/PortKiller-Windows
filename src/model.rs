@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct ProcessInfo {
     pub port: u16,
@@ -21,16 +20,24 @@ pub enum UserEvent {
 
 #[derive(Clone, Debug)]
 pub enum MenuAction {
-    KillPid { pid: i32 },
+    KillPid {
+        pid: i32,
+    },
     KillAll,
-    DockerStop { container: String },
+    DockerStop {
+        container: String,
+    },
     DockerStopAll,
     #[cfg(target_os = "macos")]
-    BrewStop { service: String },
+    BrewStop {
+        service: String,
+    },
     #[cfg(target_os = "macos")]
     BrewStopAll,
     #[cfg(target_os = "windows")]
-    WindowsServiceStop { service: String },
+    WindowsServiceStop {
+        service: String,
+    },
     #[cfg(target_os = "windows")]
     WindowsServiceStopAll,
     EditConfig,
@@ -43,11 +50,17 @@ pub enum MenuAction {
 pub enum WorkerCommand {
     KillPid(KillTarget),
     KillAll(Vec<KillTarget>),
-    DockerStop { container: String },
+    DockerStop {
+        container: String,
+    },
     #[cfg(target_os = "macos")]
-    BrewStop { service: String },
+    BrewStop {
+        service: String,
+    },
     #[cfg(target_os = "windows")]
-    WindowsServiceStop { service: String },
+    WindowsServiceStop {
+        service: String,
+    },
 }
 
 #[derive(Clone, Debug)]

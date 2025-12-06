@@ -68,21 +68,24 @@ fn show_toast(title: &str, body: &str) {
 fn get_icon_path() -> Option<String> {
     // Try to find assets/app-logo-color.png relative to executable or current dir
     let filename = "app-logo-color.png";
-    
+
     // Priority 1: Relative to executable (portability)
-    if let Ok(exe_path) = env::current_exe() {
-        if let Some(parent) = exe_path.parent() {
-            let path = parent.join("assets").join(filename);
-            if path.exists() {
-                return Some(path.to_string_lossy().to_string());
-            }
-            // Also check root if we're in /target/debug/
-            let path = parent.parent().and_then(|p| p.parent()).map(|p| p.join("assets").join(filename));
-             if let Some(path) = path {
-                if path.exists() {
-                    return Some(path.to_string_lossy().to_string());
-                }
-            }
+    if let Ok(exe_path) = env::current_exe()
+        && let Some(parent) = exe_path.parent()
+    {
+        let path = parent.join("assets").join(filename);
+        if path.exists() {
+            return Some(path.to_string_lossy().to_string());
+        }
+        // Also check root if we're in /target/debug/
+        let path = parent
+            .parent()
+            .and_then(|p| p.parent())
+            .map(|p| p.join("assets").join(filename));
+        if let Some(path) = path
+            && path.exists()
+        {
+            return Some(path.to_string_lossy().to_string());
         }
     }
 
@@ -101,18 +104,25 @@ fn show_toast_powershell(title: &str, body: &str) {
     // Escape single quotes for PowerShell
     let title = title.replace('\'', "''").replace('`', "``");
     let body = body.replace('\'', "''").replace('`', "``");
-    
+
     // Resolve icon path
     let icon_path = get_icon_path().unwrap_or_default();
-    let icon_arg = if icon_path.is_empty() { "$null".to_string() } else { format!("'{}'", icon_path) };
-    
+    let icon_arg = if icon_path.is_empty() {
+        "$null".to_string()
+    } else {
+        format!("'{}'", icon_path)
+    };
+
     // Windows XML needs explicit file:/// URI for images usually, strict path handling
     // However, local paths usually work if absolute.
     // For XML injection:
     let xml_image_node = if icon_path.is_empty() {
         "".to_string()
     } else {
-        format!(r#"<image placement="appLogoOverride" src="{}" />"#, icon_path)
+        format!(
+            r#"<image placement="appLogoOverride" src="{}" />"#,
+            icon_path
+        )
     };
 
     // Use BurntToast module if available, otherwise fall back to basic toast
@@ -154,14 +164,16 @@ if (Get-Module -ListAvailable -Name BurntToast) {{
         icon_arg = icon_arg,
         xml_image_node = xml_image_node
     );
-    
+
     // Run PowerShell in background without waiting (hidden to prevent console flicker)
     let _ = hidden_command("powershell")
         .args([
             "-NoProfile",
-            "-NonInteractive", 
-            "-WindowStyle", "Hidden",
-            "-Command", &script
+            "-NonInteractive",
+            "-WindowStyle",
+            "Hidden",
+            "-Command",
+            &script,
         ])
         .spawn();
 }

@@ -130,7 +130,8 @@ pub fn run() -> Result<()> {
                     }
                     #[cfg(target_os = "windows")]
                     if state.config.integrations.windows_services_enabled {
-                        state.windows_services_map = query_windows_services_map().unwrap_or_default();
+                        state.windows_services_map =
+                            query_windows_services_map().unwrap_or_default();
                     }
                 }
                 // Clear maps if integrations disabled (check every time)
@@ -161,13 +162,13 @@ pub fn run() -> Result<()> {
                 MenuAction::EditConfig => {
                     let config_path = get_config_path();
                     let path_str = config_path.to_string_lossy().to_string();
-                    
+
                     #[cfg(target_os = "macos")]
                     let _ = Command::new("open").arg("-t").arg(&path_str).spawn();
-                    
+
                     #[cfg(target_os = "windows")]
                     let _ = hidden_command("notepad").arg(&path_str).spawn();
-                    
+
                     state.last_feedback = Some(KillFeedback::info(format!(
                         "Opened config file: {}",
                         path_str
@@ -863,11 +864,11 @@ fn get_process_cwd(pid: i32) -> Option<std::path::PathBuf> {
         ])
         .output()
         .ok()?;
-    
+
     if !out.status.success() {
         return None;
     }
-    
+
     // Parse output like "ExecutablePath=C:\path\to\app.exe"
     let output = String::from_utf8_lossy(&out.stdout);
     for line in output.lines() {
@@ -886,7 +887,7 @@ fn is_safe_path(path: &std::path::Path) -> bool {
         Ok(p) => p,
         Err(_) => return false,
     };
-    
+
     #[cfg(target_os = "macos")]
     {
         // Allow paths under home directory
@@ -905,14 +906,14 @@ fn is_safe_path(path: &std::path::Path) -> bool {
             return true;
         }
     }
-    
+
     #[cfg(target_os = "windows")]
     {
         // Allow paths under user profile
-        if let Ok(userprofile) = std::env::var("USERPROFILE") {
-            if canonical.starts_with(&userprofile) {
-                return true;
-            }
+        if let Ok(userprofile) = std::env::var("USERPROFILE")
+            && canonical.starts_with(&userprofile)
+        {
+            return true;
         }
         // Allow common dev locations
         if let Some(path_str) = canonical.to_str() {
@@ -928,16 +929,15 @@ fn is_safe_path(path: &std::path::Path) -> bool {
             }
         }
         // Allow temp directories
-        if let Ok(temp) = std::env::var("TEMP") {
-            if canonical.starts_with(&temp) {
-                return true;
-            }
+        if let Ok(temp) = std::env::var("TEMP")
+            && canonical.starts_with(&temp)
+        {
+            return true;
         }
     }
-    
+
     false
 }
-
 
 fn get_git_repo_name(path: &std::path::Path) -> Option<String> {
     let out = hidden_command("git")

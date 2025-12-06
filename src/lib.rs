@@ -42,4 +42,3 @@ pub mod notify {
 pub mod launch {
     pub use crate::platform::current::launch::*;
 }
-

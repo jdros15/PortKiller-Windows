@@ -61,7 +61,7 @@ pub fn find_command(name: &str) -> &'static str {
 pub fn hidden_command(program: &str) -> std::process::Command {
     use std::os::windows::process::CommandExt;
     const CREATE_NO_WINDOW: u32 = 0x08000000;
-    
+
     let mut cmd = std::process::Command::new(program);
     cmd.creation_flags(CREATE_NO_WINDOW);
     cmd
@@ -77,11 +77,13 @@ pub fn hidden_command(program: &str) -> std::process::Command {
 /// Returns true if dark mode is enabled, false for light mode
 #[cfg(target_os = "windows")]
 pub fn is_windows_dark_mode() -> bool {
-    use winreg::enums::HKEY_CURRENT_USER;
     use winreg::RegKey;
-    
+    use winreg::enums::HKEY_CURRENT_USER;
+
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-    if let Ok(personalize) = hkcu.open_subkey("Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize") {
+    if let Ok(personalize) =
+        hkcu.open_subkey("Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize")
+    {
         // AppsUseLightTheme: 0 = dark mode, 1 = light mode
         if let Ok(value) = personalize.get_value::<u32, _>("AppsUseLightTheme") {
             return value == 0;
@@ -90,4 +92,3 @@ pub fn is_windows_dark_mode() -> bool {
     // Default to light mode if we can't read the registry
     false
 }
-

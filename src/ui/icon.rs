@@ -63,31 +63,29 @@ pub fn create_template_icon(variant: IconVariant) -> Result<Icon> {
 
 /// Create a template icon for the system tray.
 /// Uses cached decoded RGBA data to avoid repeated PNG decoding.
-/// On Windows, selects light icons for dark mode (dark taskbar) and 
+/// On Windows, selects light icons for dark mode (dark taskbar) and
 /// dark icons for light mode (light taskbar).
 #[cfg(target_os = "windows")]
 pub fn create_template_icon(variant: IconVariant) -> Result<Icon> {
     use crate::utils::is_windows_dark_mode;
-    
+
     let is_dark_mode = is_windows_dark_mode();
-    
-    let cached = match (variant, is_dark_mode) {
-        // Dark mode: use light icons (visible on dark taskbar)
-        (IconVariant::Active, true) => {
-            ICON_ACTIVE_LIGHT_CACHE.get_or_init(|| decode_png_to_rgba(ICON_FILLED_LIGHT).unwrap())
-        }
-        (IconVariant::Inactive, true) => {
-            ICON_INACTIVE_LIGHT_CACHE.get_or_init(|| decode_png_to_rgba(ICON_OUTLINE_LIGHT).unwrap())
-        }
-        // Light mode: use dark icons (visible on light taskbar)
-        (IconVariant::Active, false) => {
-            ICON_ACTIVE_DARK_CACHE.get_or_init(|| decode_png_to_rgba(ICON_FILLED_DARK).unwrap())
-        }
-        (IconVariant::Inactive, false) => {
-            ICON_INACTIVE_DARK_CACHE.get_or_init(|| decode_png_to_rgba(ICON_OUTLINE_DARK).unwrap())
-        }
-    };
-    
+
+    let cached =
+        match (variant, is_dark_mode) {
+            // Dark mode: use light icons (visible on dark taskbar)
+            (IconVariant::Active, true) => ICON_ACTIVE_LIGHT_CACHE
+                .get_or_init(|| decode_png_to_rgba(ICON_FILLED_LIGHT).unwrap()),
+            (IconVariant::Inactive, true) => ICON_INACTIVE_LIGHT_CACHE
+                .get_or_init(|| decode_png_to_rgba(ICON_OUTLINE_LIGHT).unwrap()),
+            // Light mode: use dark icons (visible on light taskbar)
+            (IconVariant::Active, false) => {
+                ICON_ACTIVE_DARK_CACHE.get_or_init(|| decode_png_to_rgba(ICON_FILLED_DARK).unwrap())
+            }
+            (IconVariant::Inactive, false) => ICON_INACTIVE_DARK_CACHE
+                .get_or_init(|| decode_png_to_rgba(ICON_OUTLINE_DARK).unwrap()),
+        };
+
     Icon::from_rgba(cached.rgba.clone(), cached.width, cached.height)
         .map_err(|e| anyhow!("failed to create icon: {e}"))
 }
@@ -144,4 +142,3 @@ fn decode_png_to_rgba(png_data: &[u8]) -> Result<CachedIconData> {
         height,
     })
 }
-

@@ -5,8 +5,8 @@ use std::time::Duration;
 
 use windows::Win32::Foundation::{CloseHandle, HANDLE, WAIT_OBJECT_0};
 use windows::Win32::System::Threading::{
-    OpenProcess, TerminateProcess, WaitForSingleObject,
-    PROCESS_QUERY_LIMITED_INFORMATION, PROCESS_TERMINATE,
+    OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION, PROCESS_TERMINATE, TerminateProcess,
+    WaitForSingleObject,
 };
 
 use crate::model::KillOutcome;
@@ -90,11 +90,10 @@ unsafe fn wait_for_exit(handle: HANDLE, timeout: Duration) -> bool {
         // WaitForSingleObject with 0 timeout = check status without waiting
         // SAFETY: handle is valid and obtained from OpenProcess
         let result = unsafe { WaitForSingleObject(handle, 0) };
-        match result {
-            WAIT_OBJECT_0 => return true, // Process exited
-            _ => {}
+        if result == WAIT_OBJECT_0 {
+            return true; // Process exited
         }
-        
+
         if std::time::Instant::now() >= deadline {
             return false;
         }

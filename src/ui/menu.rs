@@ -97,11 +97,13 @@ pub fn build_menu_with_context(state: &AppState) -> Result<Menu> {
                 }
                 #[cfg(target_os = "windows")]
                 {
-                    if let Some(service) = crate::integrations::windows_services::get_windows_managed_service(
-                        &process.command,
-                        process.port,
-                        &state.windows_services_map,
-                    ) {
+                    if let Some(service) =
+                        crate::integrations::windows_services::get_windows_managed_service(
+                            &process.command,
+                            process.port,
+                            &state.windows_services_map,
+                        )
+                    {
                         service_items.push((process, service));
                         continue;
                     }
@@ -320,7 +322,8 @@ pub fn build_menu_with_context(state: &AppState) -> Result<Menu> {
                 ports.sort();
 
                 // Build label with friendly name
-                let friendly = crate::integrations::windows_services::friendly_service_name(&service_name);
+                let friendly =
+                    crate::integrations::windows_services::friendly_service_name(&service_name);
                 let ports_str = ports
                     .iter()
                     .map(|p| p.to_string())

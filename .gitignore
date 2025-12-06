@@ -32,3 +32,6 @@ PROJECT_INDEX.json
 docs/
 .gemini-clipboard/
 .mcp.json
+
+# GitHub Actions logs
+logs_*/

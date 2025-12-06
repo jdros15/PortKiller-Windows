@@ -34,12 +34,12 @@ pub fn scan_ports(port_ranges: &[(u16, u16)]) -> Result<Vec<ProcessInfo>> {
         // Parse lines like: TCP    0.0.0.0:3000    0.0.0.0:0    LISTENING    1234
         // or:               TCP    [::]:3000       [::]:0       LISTENING    1234
         let parts: Vec<&str> = line.split_whitespace().collect();
-        
+
         // Need at least: TCP, local_addr, foreign_addr, state, PID
         if parts.len() < 5 {
             continue;
         }
-        
+
         // Check for TCP and LISTENING state
         if parts[0] != "TCP" || parts[3] != "LISTENING" {
             continue;
@@ -50,7 +50,7 @@ pub fn scan_ports(port_ranges: &[(u16, u16)]) -> Result<Vec<ProcessInfo>> {
             Some(p) => p,
             None => continue,
         };
-        
+
         if !in_ranges(port, port_ranges) {
             continue;
         }
@@ -93,30 +93,31 @@ fn parse_port_from_address(addr: &str) -> Option<u16> {
         }
         return None;
     }
-    
+
     // Handle IPv4 format like "0.0.0.0:3000" or "127.0.0.1:8080"
-    addr.rsplit(':')
-        .next()
-        .and_then(|p| p.parse().ok())
+    addr.rsplit(':').next().and_then(|p| p.parse().ok())
 }
 
 /// Get process name from PID using Windows API
 fn get_process_name(pid: u32) -> Option<String> {
-    use windows::Win32::System::ProcessStatus::K32GetModuleBaseNameW;
-    use windows::Win32::System::Threading::{OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION, PROCESS_VM_READ};
     use windows::Win32::Foundation::CloseHandle;
+    use windows::Win32::System::ProcessStatus::K32GetModuleBaseNameW;
+    use windows::Win32::System::Threading::{
+        OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION, PROCESS_VM_READ,
+    };
 
     unsafe {
         let handle = OpenProcess(
             PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ,
             false,
             pid,
-        ).ok()?;
-        
+        )
+        .ok()?;
+
         let mut name = [0u16; 260];
         let len = K32GetModuleBaseNameW(handle, None, &mut name);
         let _ = CloseHandle(handle);
-        
+
         if len > 0 {
             Some(String::from_utf16_lossy(&name[..len as usize]))
         } else {
@@ -136,9 +137,9 @@ pub fn verify_pid_is_listener(pid: i32) -> bool {
         let stdout = String::from_utf8_lossy(&output.stdout);
         stdout.lines().any(|line| {
             let parts: Vec<&str> = line.split_whitespace().collect();
-            parts.len() >= 5 
+            parts.len() >= 5
                 && parts[0] == "TCP"
-                && parts[3] == "LISTENING" 
+                && parts[3] == "LISTENING"
                 && parts[4].parse::<i32>().ok() == Some(pid)
         })
     } else {

@@ -12,7 +12,7 @@ use crate::model::KillFeedback;
 /// Query Windows services that commonly use dev ports
 pub fn query_windows_services_map() -> anyhow::Result<HashMap<String, String>> {
     let mut map = HashMap::new();
-    
+
     // Check common dev services
     let services = [
         // PostgreSQL
@@ -34,13 +34,13 @@ pub fn query_windows_services_map() -> anyhow::Result<HashMap<String, String>> {
         // MongoDB
         "MongoDB",
     ];
-    
+
     for service in services {
         if let Some(status) = get_service_status(service) {
             map.insert(service.to_string(), status);
         }
     }
-    
+
     Ok(map)
 }
 
@@ -49,9 +49,9 @@ fn get_service_status(service: &str) -> Option<String> {
         .args(["query", service])
         .output()
         .ok()?;
-    
+
     let stdout = String::from_utf8_lossy(&output.stdout);
-    
+
     if stdout.contains("RUNNING") {
         Some("running".to_string())
     } else if stdout.contains("STOPPED") {
@@ -70,7 +70,7 @@ pub fn get_windows_managed_service(
     services_map: &HashMap<String, String>,
 ) -> Option<String> {
     let lc = cmd.to_lowercase();
-    
+
     let potential_service = if lc.contains("postgres") {
         find_running_service(services_map, &["postgresql"])
     } else if lc.contains("mysqld") || lc.contains("mysql") {
@@ -84,7 +84,7 @@ pub fn get_windows_managed_service(
     } else {
         None
     };
-    
+
     potential_service.and_then(|service| {
         let expected_port = get_default_port_for_service(&service);
         if Some(port) == expected_port {
@@ -128,10 +128,8 @@ fn get_default_port_for_service(service: &str) -> Option<u16> {
 
 /// Stop a Windows service
 pub fn run_service_stop(service: &str) -> KillFeedback {
-    let result = hidden_command("sc")
-        .args(["stop", service])
-        .output();
-    
+    let result = hidden_command("sc").args(["stop", service]).output();
+
     match result {
         Ok(out) if out.status.success() => {
             KillFeedback::info(format!("Stopped service {}.", service))
@@ -140,7 +138,7 @@ pub fn run_service_stop(service: &str) -> KillFeedback {
             let stderr = String::from_utf8_lossy(&out.stderr);
             let stdout = String::from_utf8_lossy(&out.stdout);
             let output = if stderr.is_empty() { stdout } else { stderr };
-            
+
             if output.contains("Access is denied") || output.contains("5)") {
                 KillFeedback::error(format!(
                     "Access denied stopping {}. Run as Administrator.",
@@ -159,7 +157,7 @@ pub fn run_service_stop(service: &str) -> KillFeedback {
 /// Get a friendly display name for a Windows service
 pub fn friendly_service_name(service: &str) -> String {
     let lc = service.to_lowercase();
-    
+
     if lc.contains("postgres") {
         "PostgreSQL".to_string()
     } else if lc.contains("mysql") {
