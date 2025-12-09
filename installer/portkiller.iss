@@ -2,13 +2,13 @@
 ; Inno Setup 6.x required - Download from https://jrsoftware.org/isdl.php
 
 #define MyAppName "PortKiller"
-#define MyAppVersion "0.3.0-win"
+#define MyAppVersion "0.3.1-win"
 #define MyAppPublisher "JD Ros"
 #define MyAppURL "https://github.com/jdros15/PortKiller-Windows"
 #define MyAppExeName "portkiller.exe"
 #define MyAppId "{{B8F7E8A0-9C3D-4E5F-8A1B-2D3C4E5F6A7B}"
 
-#define MyAppFileVersion "0.3.0.0"
+#define MyAppFileVersion "0.3.1.0"
 
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application.
@@ -69,12 +69,61 @@ Filename: "{#MyAppURL}"; Description: "View Readme"; Flags: postinstall shellexe
 Type: filesandordirs; Name: "{userappdata}\PortKiller"
 
 [Code]
+function IsAppRunning(const FileName: String): Boolean;
+var
+  FSWbemLocator: Variant;
+  FWMIService: Variant;
+  FWbemObjectSet: Variant;
+begin
+  Result := False;
+  try
+    FSWbemLocator := CreateOleObject('WBEMScripting.SWBEMLocator');
+    FWMIService := FSWbemLocator.ConnectServer('localhost', 'root\CIMV2', '', '');
+    FWbemObjectSet := FWMIService.ExecQuery('SELECT Name FROM Win32_Process WHERE Name="' + FileName + '"');
+    Result := (FWbemObjectSet.Count > 0);
+  except
+    Result := False;
+  end;
+end;
+
+function CloseApp(const FileName: String): Boolean;
+var
+  ResultCode: Integer;
+begin
+  Result := Exec('taskkill.exe', '/F /IM ' + FileName, '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  Result := Result and (ResultCode = 0);
+end;
+
 function InitializeSetup(): Boolean;
 var
   ResultCode: Integer;
   OldVersion: String;
 begin
   Result := True;
+  
+  // Check if PortKiller is currently running
+  if IsAppRunning('{#MyAppExeName}') then
+  begin
+    if MsgBox('PortKiller is currently running.' + #13#10 + #13#10 + 
+              'Do you want to close it automatically to proceed with the installation?', 
+              mbConfirmation, MB_YESNO) = IDYES then
+    begin
+      if not CloseApp('{#MyAppExeName}') then
+      begin
+        MsgBox('Failed to close PortKiller. Please close it manually and try again.', mbError, MB_OK);
+        Result := False;
+        Exit;
+      end;
+      // Wait a moment for the process to fully terminate
+      Sleep(500);
+    end
+    else
+    begin
+      MsgBox('Installation cancelled. Please close PortKiller and try again.', mbInformation, MB_OK);
+      Result := False;
+      Exit;
+    end;
+  end;
   
   // Check if already installed
   if RegQueryStringValue(HKLM, 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{#MyAppId}_is1', 
