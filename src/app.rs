@@ -40,6 +40,11 @@ const MENU_POLL_INTERVAL: Duration = Duration::from_millis(100);
 // menu constants moved under ui::menu
 
 pub fn run() -> Result<()> {
+    // Initialize Windows shutdown handler to catch shutdown/logoff signals
+    // This must be done early to prevent netstat errors during Windows shutdown
+    #[cfg(target_os = "windows")]
+    crate::shutdown::init_shutdown_handler();
+
     let config = load_or_create_config().context("failed to load configuration")?;
     let shared_config = Arc::new(RwLock::new(config.clone()));
 
@@ -465,6 +470,9 @@ pub fn run() -> Result<()> {
             }
         },
         Event::LoopExiting => {
+            // Signal background threads to stop calling external commands
+            #[cfg(target_os = "windows")]
+            crate::shutdown::set_shutting_down();
             worker_sender.take();
         }
         _ => {}

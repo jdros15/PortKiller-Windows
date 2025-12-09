@@ -42,3 +42,8 @@ pub mod notify {
 pub mod launch {
     pub use crate::platform::current::launch::*;
 }
+
+#[cfg(target_os = "windows")]
+pub mod shutdown {
+    pub use crate::platform::current::shutdown::*;
+}

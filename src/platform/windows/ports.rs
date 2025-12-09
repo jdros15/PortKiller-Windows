@@ -7,8 +7,15 @@ use crate::utils::hidden_command;
 use anyhow::{Context, Result, anyhow};
 
 use crate::model::ProcessInfo;
+use super::shutdown::is_shutting_down;
 
 pub fn scan_ports(port_ranges: &[(u16, u16)]) -> Result<Vec<ProcessInfo>> {
+    // Check for shutdown before executing external command
+    // This prevents the netstat error during Windows shutdown
+    if is_shutting_down() {
+        return Ok(Vec::new());
+    }
+
     fn in_ranges(port: u16, ranges: &[(u16, u16)]) -> bool {
         ranges.iter().any(|(s, e)| port >= *s && port <= *e)
     }
@@ -129,6 +136,11 @@ fn get_process_name(pid: u32) -> Option<String> {
 /// Verify that a PID is still associated with a TCP listener.
 /// Used to mitigate TOCTOU race conditions before killing a process.
 pub fn verify_pid_is_listener(pid: i32) -> bool {
+    // Skip verification during shutdown to avoid netstat errors
+    if is_shutting_down() {
+        return false;
+    }
+
     // Re-scan and check if PID is still listening
     if let Ok(output) = hidden_command("netstat")
         .args(["-ano", "-p", "TCP"])
